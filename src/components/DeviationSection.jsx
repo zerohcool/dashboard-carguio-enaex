@@ -63,10 +63,16 @@ export const getProductTolerance = (productName) => {
   return 0.05; // ±5%
 };
 
-// Función para parsear el diámetro de pulgadas a un número flotante
+// Función para parsear el diámetro de pulgadas o milímetros a un número flotante en pulgadas
 export const parseDiameterToInches = (diamStr) => {
   if (!diamStr) return 0;
-  let cleanStr = String(diamStr).replace(/"/g, '').trim();
+  let cleanStr = String(diamStr).toLowerCase().replace(/"/g, '').trim();
+  
+  // Detectar si contiene explícitamente "mm" o "m.m"
+  const isMmExplicit = cleanStr.includes('mm') || cleanStr.includes('m.m');
+  cleanStr = cleanStr.replace(/mm|m\.m/g, '').trim();
+  
+  let inches = 0;
   
   if (cleanStr.includes(' ')) {
     const parts = cleanStr.split(' ');
@@ -75,20 +81,28 @@ export const parseDiameterToInches = (diamStr) => {
       const fracParts = parts[1].split('/');
       const num = parseFloat(fracParts[0]);
       const den = parseFloat(fracParts[1]);
-      return whole + (num / den);
+      inches = whole + (num / den);
+    } else {
+      inches = whole;
     }
-    return whole;
-  }
-  
-  if (cleanStr.includes('/')) {
+  } else if (cleanStr.includes('/')) {
     const parts = cleanStr.split('/');
     const num = parseFloat(parts[0]);
     const den = parseFloat(parts[1]);
-    return num / den;
+    inches = num / den;
+  } else {
+    inches = parseFloat(cleanStr);
   }
   
-  const parsed = parseFloat(cleanStr);
-  return isNaN(parsed) ? 0 : parsed;
+  if (isNaN(inches)) return 0;
+  
+  // Heurística: Si tiene "mm" explícito, o si el valor es mayor a 20
+  // (ningún pozo de tronadura mide >20 pulgadas, pero sí 165mm, 251mm, etc.)
+  if (isMmExplicit || inches > 20) {
+    return inches / 25.4; // Convertir mm a pulgadas
+  }
+  
+  return inches;
 };
 
 function DeviationSection({ filteredData, theme }) {
@@ -135,6 +149,7 @@ function DeviationSection({ filteredData, theme }) {
       
       return {
         pozo: row.pozo,
+        poligono: row.poligono,
         diametro: row.diametro,
         longitudReal: row.longitudReal,
         taco: row.taco,
@@ -353,6 +368,7 @@ function DeviationSection({ filteredData, theme }) {
           <thead>
             <tr>
               <th>Pozo</th>
+              <th>Polígono</th>
               <th>Diámetro</th>
               <th>Altura Carga (m)</th>
               <th>Producto (Densidad)</th>
@@ -368,6 +384,13 @@ function DeviationSection({ filteredData, theme }) {
             {paginatedData.map((item, idx) => (
               <tr key={idx}>
                 <td style={{ fontWeight: '700', color: 'var(--primary)' }}>{item.pozo}</td>
+                <td>
+                  {item.poligono ? (
+                    <span className="badge badge-info">{item.poligono}</span>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(vacío)</span>
+                  )}
+                </td>
                 <td>{item.diametro}</td>
                 <td>{item.alturaCarga.toFixed(2)} m</td>
                 <td>{item.explosivo} ({item.densidad} g/cc)</td>
