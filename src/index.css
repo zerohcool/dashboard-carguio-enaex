@@ -705,14 +705,8 @@ body {
 
 .alerts-panel-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.25rem;
-}
-
-@media (max-width: 768px) {
-  .alerts-panel-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .alert-card-item {
@@ -1111,6 +1105,8 @@ body.light-theme .alert-badge-pozo span {
   }
 
   .alerts-panel-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
     gap: 0.4rem !important;
   }
 

@@ -25,6 +25,21 @@ export const getRowAlerts = (row) => {
   if (row.operador === null || row.operador.trim() === '') {
     alerts.push('Operador vacío');
   }
+
+  // 6. Diámetro no es pulgada o vacío
+  if (!row.diametro) {
+    alerts.push('Diámetro vacío');
+  } else {
+    const diamStr = String(row.diametro).toLowerCase().trim();
+    const hasMm = diamStr.includes('mm') || diamStr.includes('m.m');
+    const hasErr = diamStr.includes('err') || diamStr.includes('error');
+    const numPart = parseFloat(diamStr.replace(/[^0-9.]/g, ''));
+    const isLargeNum = !isNaN(numPart) && numPart > 20;
+    
+    if (hasMm || hasErr || isLargeNum || isNaN(numPart)) {
+      alerts.push('Diámetro no es pulgada');
+    }
+  }
   
   return alerts;
 };
