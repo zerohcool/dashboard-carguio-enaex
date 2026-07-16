@@ -705,8 +705,14 @@ body {
 
 .alerts-panel-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .alerts-panel-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .alert-card-item {

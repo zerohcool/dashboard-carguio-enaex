@@ -1,3 +1,23 @@
+const isNotPureInches = (diamStr) => {
+  if (!diamStr) return false;
+  const cleanStr = String(diamStr).toLowerCase();
+  if (cleanStr.includes('err') || cleanStr.includes('mm') || cleanStr.includes('m.m')) {
+    return true;
+  }
+  
+  // Quitar comillas y limpiar
+  let numVal = parseFloat(cleanStr.replace(/"/g, '').trim());
+  if (cleanStr.includes('/')) {
+    return false; // Las fracciones como "6 1/2" son normales en pulgadas
+  }
+  
+  if (!isNaN(numVal) && numVal > 20) {
+    return true; // Si el valor es mayor a 20 (ej: 160, 251), está en milímetros
+  }
+  
+  return false;
+};
+
 export const getRowAlerts = (row) => {
   const alerts = [];
   
@@ -26,19 +46,9 @@ export const getRowAlerts = (row) => {
     alerts.push('Operador vacío');
   }
 
-  // 6. Diámetro no es pulgada o vacío
-  if (!row.diametro) {
-    alerts.push('Diámetro vacío');
-  } else {
-    const diamStr = String(row.diametro).toLowerCase().trim();
-    const hasMm = diamStr.includes('mm') || diamStr.includes('m.m');
-    const hasErr = diamStr.includes('err') || diamStr.includes('error');
-    const numPart = parseFloat(diamStr.replace(/[^0-9.]/g, ''));
-    const isLargeNum = !isNaN(numPart) && numPart > 20;
-    
-    if (hasMm || hasErr || isLargeNum || isNaN(numPart)) {
-      alerts.push('Diámetro no es pulgada');
-    }
+  // 6. Formato de diámetro no en pulgadas
+  if (isNotPureInches(row.diametro)) {
+    alerts.push('Diámetro en mm/err');
   }
   
   return alerts;
