@@ -135,6 +135,18 @@ function App() {
           throw new Error('El archivo Excel está vacío.');
         }
 
+        // Validación de formato cruzado
+        const firstRowKeys = Object.keys(jsonData[0] || {});
+        const hasDatawallIndicator = firstRowKeys.some(k => k === 'Fecha Carguío Adelanto' || k === 'Polígono' || k === 'Fotos');
+        const hasFinalReviewIndicator = firstRowKeys.some(k => k === 'Malla' || k === 'Long. D (m)' || k === 'Carga total (kg)');
+
+        if (type === 'datawall' && hasFinalReviewIndicator && !hasDatawallIndicator) {
+          throw new Error('Formato Incorrecto: Has intentado cargar una planilla de "Final Review" en la sección de "DataWall". Por favor, cárgala en el lado derecho.');
+        }
+        if (type === 'final_review' && hasDatawallIndicator && !hasFinalReviewIndicator) {
+          throw new Error('Formato Incorrecto: Has intentado cargar una planilla de "DataWall" en la sección de "Final Review". Por favor, cárgala en el lado izquierdo.');
+        }
+
         // Helper para convertir valores numéricos de forma segura
         const safeFloat = (val) => {
           if (val === null || val === undefined || val === '') return null;
