@@ -25,7 +25,7 @@ function App() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [dragging, setDragging] = useState(false);
+  const [draggingType, setDraggingType] = useState(null); // null, 'datawall', 'final_review'
   const [theme, setTheme] = useState('dark');
 
   const toggleTheme = () => {
@@ -80,37 +80,37 @@ function App() {
     }, 150);
   };
 
-  const handleDragOver = (e) => {
+  const handleDragOver = (e, type) => {
     e.preventDefault();
-    setDragging(true);
+    setDraggingType(type);
   };
 
   const handleDragLeave = () => {
-    setDragging(false);
+    setDraggingType(null);
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = (e, type) => {
     e.preventDefault();
-    setDragging(false);
+    setDraggingType(null);
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       const droppedFile = files[0];
       if (droppedFile.name.endsWith('.xlsx') || droppedFile.name.endsWith('.xls')) {
-        parseExcel(droppedFile);
+        parseExcel(droppedFile, type);
       } else {
         setError('Por favor, selecciona un archivo Excel válido (.xlsx o .xls).');
       }
     }
   };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = (e, type) => {
     const files = e.target.files;
     if (files.length > 0) {
-      parseExcel(files[0]);
+      parseExcel(files[0], type);
     }
   };
 
-  const parseExcel = (fileObject) => {
+  const parseExcel = (fileObject, type) => {
     setLoading(true);
     setError(null);
     const reader = new FileReader();
@@ -153,33 +153,76 @@ function App() {
 
         // Mapear cada fila a una clave uniforme
         const normalized = jsonData.map((row, index) => {
-          return {
-            id: row['.'] || row['ID'] || index + 1,
-            fecha: row['Fecha Carguío Adelanto'] || null,
-            fase: row['Fase'] !== null && row['Fase'] !== undefined ? String(row['Fase']).trim() : null,
-            banco: row['Banco'] !== null && row['Banco'] !== undefined ? String(row['Banco']).trim() : null,
-            pozo: row['N° Pozo'] !== null && row['N° Pozo'] !== undefined ? String(row['N° Pozo']).trim() : null,
-            poligono: row['Polígono'] !== null && row['Polígono'] !== undefined ? String(row['Polígono']).trim() : '',
-            diametro: row['Diametro'] !== null && row['Diametro'] !== undefined ? String(row['Diametro']).trim() : null,
-            longitudDis: safeFloat(row['Longitud Dis. [m]']),
-            longitudReal: safeFloat(row['Longitud Real [m]']),
-            longitudSAcotar: safeFloat(row['Longitud S/Acotar [m]']),
-            taco: safeFloat(row['Taco (m)']),
-            agua: safeFloat(row['Agua (m)']),
-            temperatura: row['Temperatura'] !== null && row['Temperatura'] !== undefined ? String(row['Temperatura']).trim() : null,
-            nPrimas: safeInt(row['N° Primas']),
-            idPrima: row['ID Prima'] !== null && row['ID Prima'] !== undefined ? String(row['ID Prima']).trim() : null,
-            cargaFondo: safeFloat(row['Carga fondo']),
-            tipoFondo: row['Tipo'] !== null && row['Tipo'] !== undefined ? String(row['Tipo']).trim() : null,
-            camionFondo: row['Camion'] !== null && row['Camion'] !== undefined ? String(row['Camion']).trim() : null,
-            cargaColumna: safeFloat(row['Carga columna']),
-            tipoColumna: row['Tipo.'] !== null && row['Tipo.'] !== undefined ? String(row['Tipo.']).trim() : null,
-            camionColumna: row['Camion.'] !== null && row['Camion.'] !== undefined ? String(row['Camion.']).trim() : null,
-            operador: row['Operador'] !== null && row['Operador'] !== undefined ? String(row['Operador']).trim() : null,
-            denInSitu: safeFloat(row['Den. in situ']),
-            comentarios: row['Comentarios'] !== null && row['Comentarios'] !== undefined ? String(row['Comentarios']).trim() : null,
-            fotos: row['Fotos'] !== null && row['Fotos'] !== undefined ? String(row['Fotos']).trim() : null,
-          };
+          if (type === 'final_review') {
+            const cFondo = safeFloat(row['Carga fondo (kg)']);
+            const cColumna = safeFloat(row['Carga columna (kg)']);
+            const cTotal = row['Carga total (kg)'] !== null && row['Carga total (kg)'] !== undefined 
+              ? safeFloat(row['Carga total (kg)']) 
+              : ((cFondo || 0) + (cColumna || 0));
+
+            return {
+              id: row['#'] || index + 1,
+              fecha: row['Fecha'] || null,
+              fase: row['Fase'] !== null && row['Fase'] !== undefined ? String(row['Fase']).trim() : null,
+              banco: row['Banco'] !== null && row['Banco'] !== undefined ? String(row['Banco']).trim() : null,
+              pozo: row['N° Pozo'] !== null && row['N° Pozo'] !== undefined ? String(row['N° Pozo']).trim() : null,
+              poligono: row['Malla'] !== null && row['Malla'] !== undefined ? String(row['Malla']).trim() : '',
+              diametro: row['Diámetro'] !== null && row['Diámetro'] !== undefined ? String(row['Diámetro']).trim() : null,
+              longitudDis: safeFloat(row['Long. D (m)']),
+              longitudReal: safeFloat(row['Long. R (m)']),
+              longitudSAcotar: safeFloat(row['Long. S/Acotar (m)']),
+              taco: safeFloat(row['Taco (m)']),
+              agua: safeFloat(row['Agua (m)']),
+              temperatura: row['Temp.'] !== null && row['Temp.'] !== undefined ? String(row['Temp.']).trim() : null,
+              nPrimas: safeInt(row['N° primas']),
+              idPrima: null, // No existe en Final Review
+              cargaFondo: cFondo,
+              tipoFondo: row['Tipo Fondo'] !== null && row['Tipo Fondo'] !== undefined ? String(row['Tipo Fondo']).trim() : null,
+              camionFondo: row['Camión Fondo'] !== null && row['Camión Fondo'] !== undefined ? String(row['Camión Fondo']).trim() : null,
+              cargaColumna: cColumna,
+              tipoColumna: row['Tipo Columna'] !== null && row['Tipo Columna'] !== undefined ? String(row['Tipo Columna']).trim() : null,
+              camionColumna: row['Camión Columna'] !== null && row['Camión Columna'] !== undefined ? String(row['Camión Columna']).trim() : null,
+              operador: row['Operador'] !== null && row['Operador'] !== undefined ? String(row['Operador']).trim() : null,
+              denInSitu: safeFloat(row['Den. in situ']),
+              comentarios: row['Comentarios'] !== null && row['Comentarios'] !== undefined ? String(row['Comentarios']).trim() : null,
+              fotos: null, // No existe en Final Review
+              cargaTotal: cTotal,
+            };
+          } else {
+            // DataWall parsing (default)
+            const cFondo = safeFloat(row['Carga fondo']);
+            const cColumna = safeFloat(row['Carga columna']);
+            const cTotal = (cFondo || 0) + (cColumna || 0);
+
+            return {
+              id: row['.'] || row['ID'] || index + 1,
+              fecha: row['Fecha Carguío Adelanto'] || null,
+              fase: row['Fase'] !== null && row['Fase'] !== undefined ? String(row['Fase']).trim() : null,
+              banco: row['Banco'] !== null && row['Banco'] !== undefined ? String(row['Banco']).trim() : null,
+              pozo: row['N° Pozo'] !== null && row['N° Pozo'] !== undefined ? String(row['N° Pozo']).trim() : null,
+              poligono: row['Polígono'] !== null && row['Polígono'] !== undefined ? String(row['Polígono']).trim() : '',
+              diametro: row['Diametro'] !== null && row['Diametro'] !== undefined ? String(row['Diametro']).trim() : null,
+              longitudDis: safeFloat(row['Longitud Dis. [m]']),
+              longitudReal: safeFloat(row['Longitud Real [m]']),
+              longitudSAcotar: safeFloat(row['Longitud S/Acotar [m]']),
+              taco: safeFloat(row['Taco (m)']),
+              agua: safeFloat(row['Agua (m)']),
+              temperatura: row['Temperatura'] !== null && row['Temperatura'] !== undefined ? String(row['Temperatura']).trim() : null,
+              nPrimas: safeInt(row['N° Primas']),
+              idPrima: row['ID Prima'] !== null && row['ID Prima'] !== undefined ? String(row['ID Prima']).trim() : null,
+              cargaFondo: cFondo,
+              tipoFondo: row['Tipo'] !== null && row['Tipo'] !== undefined ? String(row['Tipo']).trim() : null,
+              camionFondo: row['Camion'] !== null && row['Camion'] !== undefined ? String(row['Camion']).trim() : null,
+              cargaColumna: cColumna,
+              tipoColumna: row['Tipo.'] !== null && row['Tipo.'] !== undefined ? String(row['Tipo.']).trim() : null,
+              camionColumna: row['Camion.'] !== null && row['Camion.'] !== undefined ? String(row['Camion.']).trim() : null,
+              operador: row['Operador'] !== null && row['Operador'] !== undefined ? String(row['Operador']).trim() : null,
+              denInSitu: safeFloat(row['Den. in situ']),
+              comentarios: row['Comentarios'] !== null && row['Comentarios'] !== undefined ? String(row['Comentarios']).trim() : null,
+              fotos: row['Fotos'] !== null && row['Fotos'] !== undefined ? String(row['Fotos']).trim() : null,
+              cargaTotal: cTotal,
+            };
+          }
         });
 
         // Limpieza: filtrar filas que no tengan un pozo válido o estén vacías
@@ -432,27 +475,56 @@ function App() {
 
         {/* Load Excel Section */}
         {!data && !loading && (
-          <div 
-            className={`upload-zone glass-panel ${dragging ? 'dragging' : ''}`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <FileUp className="upload-icon" />
-            <h2 className="upload-title">Carga tu vale de carguío en formato Excel</h2>
-            <p className="upload-subtitle">
-              Arrastra y suelta tu archivo `.xlsx` aquí, o haz clic en el botón para explorarlo en tu computador.
-            </p>
-            <input 
-              type="file" 
-              id="excel-file" 
-              className="file-input" 
-              accept=".xlsx, .xls"
-              onChange={handleFileChange}
-            />
-            <label htmlFor="excel-file" className="btn">
-              Seleccionar Archivo Excel
-            </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', marginTop: '1rem' }}>
+            {/* Card 1: DataWall */}
+            <div 
+              className={`upload-zone glass-panel ${draggingType === 'datawall' ? 'dragging' : ''}`}
+              onDragOver={(e) => handleDragOver(e, 'datawall')}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, 'datawall')}
+              style={{ minHeight: '320px', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+            >
+              <FileUp className="upload-icon" style={{ color: 'var(--primary)' }} />
+              <h2 className="upload-title" style={{ fontSize: '1.25rem', marginTop: '1rem' }}>Planilla DataWall</h2>
+              <p className="upload-subtitle" style={{ fontSize: '0.8rem', minHeight: '4rem', margin: '0.5rem 0 1.5rem 0' }}>
+                Arrastra tu planilla <strong>DataWall</strong> aquí, o haz clic para seleccionarla.
+              </p>
+              <input 
+                type="file" 
+                id="excel-file-datawall" 
+                className="file-input" 
+                accept=".xlsx, .xls"
+                onChange={(e) => handleFileChange(e, 'datawall')}
+              />
+              <label htmlFor="excel-file-datawall" className="btn btn-primary" style={{ width: '100%', display: 'inline-block', textAlign: 'center' }}>
+                Cargar DataWall
+              </label>
+            </div>
+
+            {/* Card 2: Final Review */}
+            <div 
+              className={`upload-zone glass-panel ${draggingType === 'final_review' ? 'dragging' : ''}`}
+              onDragOver={(e) => handleDragOver(e, 'final_review')}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, 'final_review')}
+              style={{ minHeight: '320px', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
+            >
+              <FileUp className="upload-icon" style={{ color: 'var(--info)' }} />
+              <h2 className="upload-title" style={{ fontSize: '1.25rem', marginTop: '1rem' }}>Planilla Final Review</h2>
+              <p className="upload-subtitle" style={{ fontSize: '0.8rem', minHeight: '4rem', margin: '0.5rem 0 1.5rem 0' }}>
+                Arrastra tu planilla <strong>Final Review</strong> aquí, o haz clic para seleccionarla. Contiene columna de Carga Total.
+              </p>
+              <input 
+                type="file" 
+                id="excel-file-finalreview" 
+                className="file-input" 
+                accept=".xlsx, .xls"
+                onChange={(e) => handleFileChange(e, 'final_review')}
+              />
+              <label htmlFor="excel-file-finalreview" className="btn btn-info" style={{ width: '100%', display: 'inline-block', textAlign: 'center', backgroundColor: 'var(--info)', borderColor: 'var(--info)', color: '#ffffff' }}>
+                Cargar Final Review
+              </label>
+            </div>
           </div>
         )}
 
