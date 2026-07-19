@@ -364,7 +364,7 @@ function DeviationSection({ filteredData, theme }) {
 
       {/* Tabla de Desviaciones */}
       <div className="table-wrapper" style={{ margin: 0 }}>
-        <table className="data-table" style={{ width: '100%' }}>
+        <table className="data-table deviation-table" style={{ width: '100%' }}>
           <thead>
             <tr>
               <th>Pozo</th>
@@ -373,7 +373,6 @@ function DeviationSection({ filteredData, theme }) {
               <th>Real (m)</th>
               <th>Taco (m)</th>
               <th>Altura Carga (m)</th>
-              <th>Producto (Densidad)</th>
               <th>Carga Real (kg)</th>
               <th>Carga Teórica (kg)</th>
               <th>Desviación (kg)</th>
@@ -397,8 +396,12 @@ function DeviationSection({ filteredData, theme }) {
                 <td>{item.longitudReal !== null ? `${item.longitudReal.toFixed(2)} m` : '-'}</td>
                 <td>{item.taco !== null ? `${item.taco.toFixed(2)} m` : '-'}</td>
                 <td>{item.alturaCarga.toFixed(2)} m</td>
-                <td>{item.explosivo} ({item.densidad} g/cc)</td>
-                <td style={{ fontWeight: '600' }}>{item.cargaReal.toLocaleString('es-CL')} kg</td>
+                <td style={{ fontWeight: '600' }}>
+                  {item.cargaReal.toLocaleString('es-CL')} kg
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', fontWeight: '400', marginTop: '0.1rem' }}>
+                    {item.explosivo} ({item.densidad} g/cc)
+                  </span>
+                </td>
                 <td>{item.cargaTeorica.toLocaleString('es-CL')} kg</td>
                 <td style={{ color: item.desviacionKg > 0 ? 'var(--danger)' : 'var(--info)' }}>
                   {item.desviacionKg > 0 ? '+' : ''}{item.desviacionKg.toLocaleString('es-CL')} kg

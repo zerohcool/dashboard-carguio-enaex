@@ -1178,3 +1178,8 @@ body.light-theme .alert-badge-pozo span {
   color: #25D366 !important;
 }
 
+.deviation-table th, .deviation-table td {
+  padding: 0.6rem 0.75rem !important;
+  font-size: 0.8rem !important;
+}
+
