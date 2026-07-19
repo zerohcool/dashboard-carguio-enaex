@@ -24,6 +24,7 @@ import { getRowAlerts } from './utils/getRowAlerts';
 function App() {
   const [file, setFile] = useState(null);
   const [data, setData] = useState(null);
+  const [fileUrl, setFileUrl] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'vale'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -248,6 +249,9 @@ function App() {
           throw new Error('No se encontraron registros de pozos válidos con el número de pozo completo.');
         }
 
+        const url = URL.createObjectURL(fileObject);
+        setFileUrl(url);
+
         setFile({
           name: fileObject.name,
           size: (fileObject.size / 1024).toFixed(1) + ' KB'
@@ -270,6 +274,10 @@ function App() {
   };
 
   const handleClear = () => {
+    if (fileUrl) {
+      URL.revokeObjectURL(fileUrl);
+      setFileUrl(null);
+    }
     setFile(null);
     setData(null);
     setError(null);
@@ -561,7 +569,21 @@ function App() {
               <div className="file-info-details">
                 <HardDrive className="file-info-icon" />
                 <div>
-                  <span className="file-info-name">{file?.name}</span>
+                  <a 
+                    href={fileUrl || '#'} 
+                    download={file?.name}
+                    className="file-info-name"
+                    title="Haz clic para descargar y abrir el archivo original en Excel"
+                    style={{ 
+                      textDecoration: 'none', 
+                      color: 'var(--primary)', 
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      borderBottom: '1px dashed var(--primary)'
+                    }}
+                  >
+                    {file?.name}
+                  </a>
                   <span className="file-info-size"> ({file?.size})</span>
                 </div>
               </div>
