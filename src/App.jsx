@@ -141,13 +141,13 @@ function App() {
 
         // Validación de formato cruzado
         const firstRowKeys = Object.keys(jsonData[0] || {});
-        const hasDatawallIndicator = firstRowKeys.some(k => k === 'Fecha Carguío Adelanto' || k === 'Polígono' || k === 'Fotos');
-        const hasFinalReviewIndicator = firstRowKeys.some(k => k === 'Malla' || k === 'Long. D (m)' || k === 'Carga total (kg)');
+        const hasDatawallIndicator = firstRowKeys.some(k => k === 'Carga fondo' || k === 'Carga columna' || k === 'ID Prima' || k === 'Polígono');
+        const hasFinalReviewIndicator = firstRowKeys.some(k => k === 'Carga total (kg)' || k === 'Carga fondo (kg)' || k === 'Malla');
 
-        if (type === 'datawall' && hasFinalReviewIndicator && !hasDatawallIndicator) {
+        if (type === 'datawall' && hasFinalReviewIndicator) {
           throw new Error('Formato Incorrecto: Has intentado cargar una planilla de "Final Review" en la sección de "DataWall". Por favor, cárgala en el lado derecho.');
         }
-        if (type === 'final_review' && hasDatawallIndicator && !hasFinalReviewIndicator) {
+        if (type === 'final_review' && hasDatawallIndicator) {
           throw new Error('Formato Incorrecto: Has intentado cargar una planilla de "DataWall" en la sección de "Final Review". Por favor, cárgala en el lado izquierdo.');
         }
 
