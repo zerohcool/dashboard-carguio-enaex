@@ -382,17 +382,28 @@ function DeviationSection({ filteredData, theme }) {
             </tr>
           </thead>
           <tbody>
-            {paginatedData.map((item, idx) => (
-              <tr key={idx}>
-                <td style={{ fontWeight: '700', color: 'var(--primary)' }}>{item.pozo}</td>
-                <td>
-                  {item.poligono ? (
-                    <span className="badge badge-info">{item.poligono}</span>
-                  ) : (
-                    <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(vacío)</span>
-                  )}
-                </td>
-                <td>{item.diametro}</td>
+            {paginatedData.map((item, idx) => {
+              const dInches = parseDiameterToInches(item.diametro);
+              const subidaLineal = dInches > 0 && item.densidad > 0 
+                ? (0.50671 * (dInches * dInches) * item.densidad) 
+                : 0;
+              const tooltipText = subidaLineal > 0 
+                ? `Subida lineal del explosivo: ${subidaLineal.toFixed(1)} kg x mt` 
+                : 'Información de diámetro o densidad no disponible';
+
+              return (
+                <tr key={idx}>
+                  <td style={{ fontWeight: '700', color: 'var(--primary)' }}>{item.pozo}</td>
+                  <td>
+                    {item.poligono ? (
+                      <span className="badge badge-info">{item.poligono}</span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(vacío)</span>
+                    )}
+                  </td>
+                  <td title={tooltipText} style={{ cursor: 'help', textDecoration: 'underline dotted var(--text-secondary)', fontWeight: '500' }}>
+                    {item.diametro}
+                  </td>
                 <td>{item.longitudReal !== null ? `${item.longitudReal.toFixed(2)} m` : '-'}</td>
                 <td>{item.taco !== null ? `${item.taco.toFixed(2)} m` : '-'}</td>
                 <td>{item.alturaCarga.toFixed(2)} m</td>
@@ -422,7 +433,8 @@ function DeviationSection({ filteredData, theme }) {
                   )}
                 </td>
               </tr>
-            ))}
+            );
+          })}
           </tbody>
         </table>
       </div>
