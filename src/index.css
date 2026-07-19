@@ -71,12 +71,24 @@ body.light-theme {
 
 /* Reglas de soporte específicas para contrates en Modo Claro */
 body.light-theme .data-table th {
-  background: rgba(0, 0, 0, 0.03) !important;
-  color: var(--text-secondary) !important;
+  background: #e6effc !important; /* Azul claro corporativo limpio */
+  color: #1e3a8a !important; /* Azul oscuro elegante */
+  border-bottom: 2px solid #cbd5e1 !important;
 }
 
 body.light-theme .data-table tr:hover {
-  background: rgba(0, 0, 0, 0.015) !important;
+  background: rgba(37, 99, 235, 0.02) !important;
+}
+
+body.light-theme .upload-zone {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.light-theme .upload-zone:hover {
+  background: #f0f7ff !important;
+  border-color: #3b82f6 !important;
 }
 
 body.light-theme .search-input {
