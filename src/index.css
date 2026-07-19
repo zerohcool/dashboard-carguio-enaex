@@ -938,7 +938,8 @@ body.light-theme .alert-badge-pozo span {
 
   .no-print,
   .charts-grid,
-  .table-card {
+  .table-card,
+  .alerts-panel-section {
     display: none !important;
   }
 
@@ -1508,60 +1509,5 @@ body.light-theme .alert-badge-pozo span {
   color: #000000;
 }
 
-/* Media print specific rules for Vale de Consumo */
-@media print {
-  body.light-theme {
-    background: #ffffff !important;
-  }
-
-  /* Ocultar el resto del dashboard */
-  #root > :not(main),
-  main > :not(.vale-section-wrapper),
-  .no-print,
-  .app-footer {
-    display: none !important;
-  }
-
-  /* Ajustar la hoja de impresión para que quepa en 1 sola hoja Carta */
-  @page {
-    size: letter;
-    margin: 0.3cm 0.4cm 0.3cm 0.4cm;
-  }
-
-  .vale-section-wrapper {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .vale-document-sheet {
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-  }
-
-  .table-input-val {
-    border: none !important;
-    background: transparent !important;
-    color: #000000 !important;
-    box-shadow: none !important;
-  }
-
-  .config-input {
-    border: none !important;
-    border-bottom: 1px solid #000000 !important;
-    background: transparent !important;
-  }
-
-  .signature-cell-placeholder {
-    background: transparent !important;
-  }
-
-  .vale-config-row {
-    background: transparent !important;
-  }
-}
+/* Estilos de impresión de Vale movidos dinámicamente a ValeConsumoSection.jsx */
 

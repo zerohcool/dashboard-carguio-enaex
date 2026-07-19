@@ -236,7 +236,78 @@ function ValeConsumoSection({ filteredData, file }) {
   };
 
   const triggerPrintVale = () => {
-    window.print();
+    const style = document.createElement('style');
+    style.id = 'print-vale-style';
+    style.innerHTML = `
+      @media print {
+        @page {
+          size: letter portrait !important;
+          margin: 0.3cm 0.4cm 0.3cm 0.4cm !important;
+        }
+        /* Ocultar todo excepto el vale de consumo */
+        header,
+        footer,
+        .no-print,
+        .file-info-bar,
+        .filters-panel,
+        .alerts-panel-section,
+        .explosive-selection-banner,
+        .dashboard-grid,
+        .trucks-summary-panel,
+        .charts-grid,
+        main > :not(.vale-section-wrapper) {
+          display: none !important;
+        }
+        .vale-section-wrapper {
+          margin: 0 !important;
+          padding: 0 !important;
+          display: block !important;
+        }
+        .vale-document-sheet {
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          background: #ffffff !important;
+          color: #000000 !important;
+        }
+        .table-input-val {
+          border: none !important;
+          background: transparent !important;
+          color: #000000 !important;
+          box-shadow: none !important;
+        }
+        .config-input {
+          border: none !important;
+          border-bottom: 1px solid #000000 !important;
+          background: transparent !important;
+        }
+        .signature-cell-placeholder {
+          background: transparent !important;
+        }
+        .vale-config-row {
+          background: transparent !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    const handleAfterPrint = () => {
+      document.head.removeChild(style);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    setTimeout(() => {
+      window.print();
+      // Fallback
+      setTimeout(() => {
+        if (document.getElementById('print-vale-style')) {
+          handleAfterPrint();
+        }
+      }, 500);
+    }, 150);
   };
 
   return (

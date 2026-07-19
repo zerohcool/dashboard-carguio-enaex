@@ -446,7 +446,7 @@ function App() {
   };
 
   return (
-    <div id="root">
+    <div id="root" className={`tab-${activeTab}`}>
       <header className="app-header">
         <div className="header-content">
           <div className="logo-section" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
