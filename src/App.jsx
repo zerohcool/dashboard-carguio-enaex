@@ -18,11 +18,13 @@ import DashboardOverview from './components/DashboardOverview';
 import DataTable from './components/DataTable';
 import AlertsSection from './components/AlertsSection';
 import DeviationSection from './components/DeviationSection';
+import ValeConsumoSection from './components/ValeConsumoSection';
 import { getRowAlerts } from './utils/getRowAlerts';
 
 function App() {
   const [file, setFile] = useState(null);
   const [data, setData] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'vale'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [draggingType, setDraggingType] = useState(null); // null, 'datawall', 'final_review'
@@ -577,141 +579,171 @@ function App() {
                 </div>
               </div>
             </div>
-
-            {/* Filters Bar */}
-            <section className="filters-panel glass-panel no-print">
-              <div className="filter-group search-group">
-                <label className="filter-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Search size={12} /> Buscar
-                </label>
-                <input 
-                  type="text" 
-                  className="search-input" 
-                  placeholder="Buscar por Pozo, Operador, Camión, Comentarios..."
-                  value={filters.search}
-                  onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                />
-              </div>
-
-              {filterOptions.fases.length > 1 && (
-                <div className="filter-group">
-                  <label className="filter-label">Fase</label>
-                  <select 
-                    className="filter-select"
-                    value={filters.fase}
-                    onChange={(e) => setFilters(prev => ({ ...prev, fase: e.target.value }))}
-                  >
-                    <option value="">Todas las Fases</option>
-                    {filterOptions.fases.map(f => (
-                      <option key={f} value={f}>{f}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {filterOptions.bancos.length > 1 && (
-                <div className="filter-group">
-                  <label className="filter-label">Banco</label>
-                  <select 
-                    className="filter-select"
-                    value={filters.banco}
-                    onChange={(e) => setFilters(prev => ({ ...prev, banco: e.target.value }))}
-                  >
-                    <option value="">Todos los Bancos</option>
-                    {filterOptions.bancos.map(b => (
-                      <option key={b} value={b}>{b}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {filterOptions.poligonos.length > 1 && (
-                <div className="filter-group">
-                  <label className="filter-label">Polígono</label>
-                  <select 
-                    className="filter-select"
-                    value={filters.poligono}
-                    onChange={(e) => setFilters(prev => ({ ...prev, poligono: e.target.value }))}
-                  >
-                    <option value="">Todos los Polígonos</option>
-                    {filterOptions.poligonos.map(p => (
-                      <option key={p} value={p}>{p || '(Sin Polígono)'}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {filterOptions.diametros.length > 1 && (
-                <div className="filter-group">
-                  <label className="filter-label">Diámetro</label>
-                  <select 
-                    className="filter-select"
-                    value={filters.diametro}
-                    onChange={(e) => setFilters(prev => ({ ...prev, diametro: e.target.value }))}
-                  >
-                    <option value="">Todos los Diámetros</option>
-                    {filterOptions.diametros.map(d => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {filterOptions.fechas.length > 1 && (
-                <div className="filter-group">
-                  <label className="filter-label">Fecha</label>
-                  <select 
-                    className="filter-select"
-                    value={filters.fecha}
-                    onChange={(e) => setFilters(prev => ({ ...prev, fecha: e.target.value }))}
-                  >
-                    <option value="">Todas las Fechas</option>
-                    {filterOptions.fechas.map(f => (
-                      <option key={f} value={f}>{formatDateString(f)}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {filterOptions.tipos.length > 0 && (
-                <div className="filter-group">
-                  <label className="filter-label">Tipo Explosivo</label>
-                  <select 
-                    className="filter-select"
-                    value={filters.tipoExplosivo}
-                    onChange={(e) => setFilters(prev => ({ ...prev, tipoExplosivo: e.target.value }))}
-                  >
-                    <option value="">Todos los Tipos</option>
-                    {filterOptions.tipos.map(t => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </section>
-
-            {/* Sección de Alertas de Calidad de Datos */}
-            <AlertsSection filteredData={filteredData} />
-
-            {/* Título de Selección de Explosivo y Kilos */}
-            <div className="explosive-selection-banner glass-panel">
-              <div className="explosive-banner-info">
-                <h2>{activeExplosiveSummary.type}</h2>
-                <p>Tipo de explosivo activo en el filtro</p>
-              </div>
-              <div className="explosive-banner-metric">
-                <span className="explosive-banner-kg">
-                  {activeExplosiveSummary.totalKg.toLocaleString('es-CL')}
-                </span>
-                <span className="explosive-banner-label">Kilos Cargados Totales</span>
-              </div>
+            {/* Navigation Tabs (no-print) */}
+            <div className="no-print" style={{ 
+              display: 'flex', 
+              gap: '1rem', 
+              marginBottom: '1.5rem', 
+              borderBottom: '1px solid var(--border-color)',
+              paddingBottom: '0.75rem',
+              marginTop: '0.5rem'
+            }}>
+              <button 
+                className={`btn ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setActiveTab('dashboard')}
+                style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                Dashboard de Carguío
+              </button>
+              <button 
+                className={`btn ${activeTab === 'vale' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setActiveTab('vale')}
+                style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', cursor: 'pointer' }}
+              >
+                Vale de Consumo
+              </button>
             </div>
 
-            {/* Dashboard Visualizations */}
-            <DashboardOverview filteredData={filteredData} rawData={data} theme={theme} />
+            {activeTab === 'dashboard' ? (
+              <>
+                {/* Filters Bar */}
+                <section className="filters-panel glass-panel no-print">
+                  <div className="filter-group search-group">
+                    <label className="filter-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Search size={12} /> Buscar
+                    </label>
+                    <input 
+                      type="text" 
+                      className="search-input" 
+                      placeholder="Buscar por Pozo, Operador, Camión, Comentarios..."
+                      value={filters.search}
+                      onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                    />
+                  </div>
 
-            {/* Detailed Data Table */}
-            <DataTable filteredData={filteredData} />
+                  {filterOptions.fases.length > 1 && (
+                    <div className="filter-group">
+                      <label className="filter-label">Fase</label>
+                      <select 
+                        className="filter-select"
+                        value={filters.fase}
+                        onChange={(e) => setFilters(prev => ({ ...prev, fase: e.target.value }))}
+                      >
+                        <option value="">Todas las Fases</option>
+                        {filterOptions.fases.map(f => (
+                          <option key={f} value={f}>{f}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {filterOptions.bancos.length > 1 && (
+                    <div className="filter-group">
+                      <label className="filter-label">Banco</label>
+                      <select 
+                        className="filter-select"
+                        value={filters.banco}
+                        onChange={(e) => setFilters(prev => ({ ...prev, banco: e.target.value }))}
+                      >
+                        <option value="">Todos los Bancos</option>
+                        {filterOptions.bancos.map(b => (
+                          <option key={b} value={b}>{b}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {filterOptions.poligonos.length > 1 && (
+                    <div className="filter-group">
+                      <label className="filter-label">Polígono</label>
+                      <select 
+                        className="filter-select"
+                        value={filters.poligono}
+                        onChange={(e) => setFilters(prev => ({ ...prev, poligono: e.target.value }))}
+                      >
+                        <option value="">Todos los Polígonos</option>
+                        {filterOptions.poligonos.map(p => (
+                          <option key={p} value={p}>{p || '(Sin Polígono)'}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {filterOptions.diametros.length > 1 && (
+                    <div className="filter-group">
+                      <label className="filter-label">Diámetro</label>
+                      <select 
+                        className="filter-select"
+                        value={filters.diametro}
+                        onChange={(e) => setFilters(prev => ({ ...prev, diametro: e.target.value }))}
+                      >
+                        <option value="">Todos los Diámetros</option>
+                        {filterOptions.diametros.map(d => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {filterOptions.fechas.length > 1 && (
+                    <div className="filter-group">
+                      <label className="filter-label">Fecha</label>
+                      <select 
+                        className="filter-select"
+                        value={filters.fecha}
+                        onChange={(e) => setFilters(prev => ({ ...prev, fecha: e.target.value }))}
+                      >
+                        <option value="">Todas las Fechas</option>
+                        {filterOptions.fechas.map(f => (
+                          <option key={f} value={f}>{formatDateString(f)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {filterOptions.tipos.length > 0 && (
+                    <div className="filter-group">
+                      <label className="filter-label">Tipo Explosivo</label>
+                      <select 
+                        className="filter-select"
+                        value={filters.tipoExplosivo}
+                        onChange={(e) => setFilters(prev => ({ ...prev, tipoExplosivo: e.target.value }))}
+                      >
+                        <option value="">Todos los Tipos</option>
+                        {filterOptions.tipos.map(t => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </section>
+
+                {/* Sección de Alertas de Calidad de Datos */}
+                <AlertsSection filteredData={filteredData} />
+
+                {/* Título de Selección de Explosivo y Kilos */}
+                <div className="explosive-selection-banner glass-panel">
+                  <div className="explosive-banner-info">
+                    <h2>{activeExplosiveSummary.type}</h2>
+                    <p>Tipo de explosivo activo en el filtro</p>
+                  </div>
+                  <div className="explosive-banner-metric">
+                    <span className="explosive-banner-kg">
+                      {activeExplosiveSummary.totalKg.toLocaleString('es-CL')}
+                    </span>
+                    <span className="explosive-banner-label">Kilos Cargados Totales</span>
+                  </div>
+                </div>
+
+                {/* Dashboard Visualizations */}
+                <DashboardOverview filteredData={filteredData} rawData={data} theme={theme} />
+
+                {/* Detailed Data Table */}
+                <DataTable filteredData={filteredData} />
+              </>
+            ) : (
+              <ValeConsumoSection filteredData={filteredData} file={file} />
+            )}
           </>
         )}
       </main>
