@@ -370,6 +370,8 @@ function DeviationSection({ filteredData, theme }) {
               <th>Pozo</th>
               <th>Polígono</th>
               <th>Diámetro</th>
+              <th>Real (m)</th>
+              <th>Taco (m)</th>
               <th>Altura Carga (m)</th>
               <th>Producto (Densidad)</th>
               <th>Carga Real (kg)</th>
@@ -392,6 +394,8 @@ function DeviationSection({ filteredData, theme }) {
                   )}
                 </td>
                 <td>{item.diametro}</td>
+                <td>{item.longitudReal !== null ? `${item.longitudReal.toFixed(2)} m` : '-'}</td>
+                <td>{item.taco !== null ? `${item.taco.toFixed(2)} m` : '-'}</td>
                 <td>{item.alturaCarga.toFixed(2)} m</td>
                 <td>{item.explosivo} ({item.densidad} g/cc)</td>
                 <td style={{ fontWeight: '600' }}>{item.cargaReal.toLocaleString('es-CL')} kg</td>

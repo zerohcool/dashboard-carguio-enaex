@@ -26,17 +26,19 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [draggingType, setDraggingType] = useState(null); // null, 'datawall', 'final_review'
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState('light');
 
   const toggleTheme = () => {
-    if (theme === 'dark') {
-      setTheme('light');
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
+  React.useEffect(() => {
+    if (theme === 'light') {
       document.body.classList.add('light-theme');
     } else {
-      setTheme('dark');
       document.body.classList.remove('light-theme');
     }
-  };
+  }, [theme]);
   
   // Filters state
   const [filters, setFilters] = useState({
