@@ -5,13 +5,15 @@ import {
   ChevronRight, 
   Droplet, 
   AlertTriangle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Printer
 } from 'lucide-react';
 import { getRowAlerts } from '../utils/getRowAlerts';
 
 function DataTable({ filteredData }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
+  const [isPrintingAll, setIsPrintingAll] = useState(false);
 
   const renderAlertBadges = (row) => {
     const alerts = getRowAlerts(row);
@@ -50,9 +52,86 @@ function DataTable({ filteredData }) {
   // Paginación
   const totalPages = Math.ceil(filteredData.length / pageSize);
   const paginatedData = useMemo(() => {
+    if (isPrintingAll) return filteredData;
     const start = (currentPage - 1) * pageSize;
     return filteredData.slice(start, start + pageSize);
-  }, [filteredData, currentPage, pageSize]);
+  }, [filteredData, currentPage, pageSize, isPrintingAll]);
+
+  // Función para imprimir la planilla en formato horizontal
+  const handlePrintTable = () => {
+    setIsPrintingAll(true);
+
+    const style = document.createElement('style');
+    style.id = 'print-landscape-style';
+    style.innerHTML = `
+      @media print {
+        @page {
+          size: letter landscape !important;
+          margin: 0.3in !important;
+        }
+        /* Ocultar el resto del dashboard y barras */
+        header, 
+        footer,
+        .no-print,
+        .file-info-bar,
+        .filters-panel,
+        .alerts-panel-section,
+        .explosive-selection-banner,
+        .dashboard-grid,
+        .trucks-summary-panel,
+        .charts-grid,
+        .pagination,
+        .vale-section-wrapper {
+          display: none !important;
+        }
+        .table-card {
+          display: block !important;
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          background: #ffffff !important;
+          color: #000000 !important;
+        }
+        .table-header {
+          margin-bottom: 1rem !important;
+          border-bottom: 2px solid #000000 !important;
+          padding: 0.5rem 0 !important;
+        }
+        .data-table th {
+          background: #e6effc !important;
+          color: #1e3a8a !important;
+          font-size: 8pt !important;
+          padding: 4px 6px !important;
+          border: 1px solid #cbd5e1 !important;
+        }
+        .data-table td {
+          font-size: 7.5pt !important;
+          padding: 4px 5px !important;
+          border: 1px solid #cbd5e1 !important;
+          color: #111827 !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    const handleAfterPrint = () => {
+      document.head.removeChild(style);
+      setIsPrintingAll(false);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    setTimeout(() => {
+      window.print();
+      // Fallback
+      setTimeout(() => {
+        if (document.getElementById('print-landscape-style')) {
+          handleAfterPrint();
+        }
+      }, 500);
+    }, 200);
+  };
 
   // Exportar datos a CSV
   const handleExportCSV = () => {
@@ -174,6 +253,9 @@ function DataTable({ filteredData }) {
                 <option value={100}>100</option>
               </select>
             </div>
+            <button className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }} onClick={handlePrintTable}>
+              <Printer size={14} /> Imprimir Planilla
+            </button>
             
             <button className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }} onClick={handleExportCSV}>
               <Download size={14} /> Exportar CSV
