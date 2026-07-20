@@ -38,7 +38,7 @@ ChartJS.register(
   Filler
 );
 
-function DashboardOverview({ filteredData, rawData, theme }) {
+function DashboardOverview({ filteredData, rawData, rawExcelRows, theme }) {
   // 1. Calculamos las métricas clave (KPIs)
   const stats = useMemo(() => {
     const totalPozos = filteredData.length;
@@ -604,7 +604,7 @@ function DashboardOverview({ filteredData, rawData, theme }) {
       </section>
 
       {/* Sección Desviación de Carga Teórica vs Real */}
-      <DeviationSection filteredData={filteredData} theme={theme} />
+      <DeviationSection filteredData={filteredData} rawExcelRows={rawExcelRows} theme={theme} />
 
       {/* Charts Grid */}
       <section className="charts-grid">

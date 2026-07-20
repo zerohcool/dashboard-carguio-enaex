@@ -761,7 +761,7 @@ function App() {
                 </div>
 
                 {/* Dashboard Visualizations */}
-                <DashboardOverview filteredData={filteredData} rawData={data} theme={theme} />
+                <DashboardOverview filteredData={filteredData} rawData={data} rawExcelRows={rawExcelRows} theme={theme} />
 
                 {/* Detailed Data Table */}
                 <DataTable filteredData={filteredData} />

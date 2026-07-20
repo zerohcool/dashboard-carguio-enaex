@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Scale, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Scale, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -105,7 +105,26 @@ export const parseDiameterToInches = (diamStr) => {
   return inches;
 };
 
-function DeviationSection({ filteredData, theme }) {
+function DeviationSection({ filteredData, rawExcelRows, theme }) {
+  const [inspectingPozo, setInspectingPozo] = useState(null);
+
+  const handleInspectPozo = (pozoNum) => {
+    if (!rawExcelRows || rawExcelRows.length === 0) return;
+    const foundRow = rawExcelRows.find(row => {
+      const pVal = row['N° Pozo'] || row['pozo'] || row['Pozo'];
+      if (pVal !== undefined && pVal !== null) {
+        return String(pVal).trim() === String(pozoNum).trim();
+      }
+      return false;
+    });
+    if (foundRow) {
+      setInspectingPozo({
+        pozo: pozoNum,
+        row: foundRow
+      });
+    }
+  };
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [chartPage, setChartPage] = useState(1);
@@ -390,7 +409,14 @@ function DeviationSection({ filteredData, theme }) {
 
               return (
                 <tr key={idx}>
-                  <td style={{ fontWeight: '700', color: 'var(--primary)' }}>{item.pozo}</td>
+                  <td 
+                    className="pozo-cell-clickable" 
+                    onClick={() => handleInspectPozo(item.pozo)}
+                    title="Haz clic para inspeccionar la fila original en el Excel"
+                    style={{ fontWeight: '700' }}
+                  >
+                    {item.pozo}
+                  </td>
                   <td>
                     {item.poligono ? (
                       <span className="badge badge-info">{item.poligono}</span>
@@ -500,6 +526,55 @@ function DeviationSection({ filteredData, theme }) {
           />
         </div>
       </div>
+
+      {/* Modal Inspector de Fila Original desde Desviaciones */}
+      {inspectingPozo && (
+        <div className="modal-overlay no-print" onClick={() => setInspectingPozo(null)}>
+          <div className="modal-content-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-bar">
+              <div className="modal-header-title">
+                <Scale size={18} style={{ color: 'var(--primary)' }} />
+                <span>
+                  Inspector de Fila Original: Pozo <strong>{inspectingPozo.pozo}</strong>
+                </span>
+              </div>
+              <button className="modal-close-btn" onClick={() => setInspectingPozo(null)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body-area">
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                Mostrando la fila tal como aparece en el archivo Excel original.
+              </p>
+              
+              <div className="inspect-table-wrapper">
+                <table className="inspect-table">
+                  <thead>
+                    <tr>
+                      {Object.keys(inspectingPozo.row).map((key) => (
+                        <th key={key}>{key}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      {Object.entries(inspectingPozo.row).map(([key, val]) => (
+                        <td key={key}>
+                          {val === null || val === undefined || String(val).trim() === '' ? (
+                            <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(vacío)</span>
+                          ) : (
+                            String(val)
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

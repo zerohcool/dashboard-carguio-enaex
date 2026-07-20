@@ -1724,3 +1724,20 @@ body.light-theme .cell-highlight-warning {
   color: #b45309 !important;
 }
 
+/* Estilo para los números de pozo clickeables en la tabla de desviaciones */
+.pozo-cell-clickable {
+  color: var(--primary) !important;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.pozo-cell-clickable:hover {
+  color: #2563eb !important;
+  background-color: rgba(37, 99, 235, 0.05) !important;
+  text-decoration: underline;
+}
+
+body.light-theme .pozo-cell-clickable:hover {
+  background-color: #f1f5f9 !important;
+}
+
