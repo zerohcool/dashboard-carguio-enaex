@@ -26,7 +26,6 @@ function App() {
   const [file, setFile] = useState(null);
   const [data, setData] = useState(null);
   const [rawExcelRows, setRawExcelRows] = useState([]);
-  const [isPrintingRawExcel, setIsPrintingRawExcel] = useState(false);
   const [fileUrl, setFileUrl] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'vale'
   const [loading, setLoading] = useState(false);
@@ -91,7 +90,10 @@ function App() {
   const handlePrintRawExcel = () => {
     if (!rawExcelRows || rawExcelRows.length === 0) return;
     
-    setIsPrintingRawExcel(true);
+    const rootEl = document.getElementById('root');
+    if (rootEl) {
+      rootEl.classList.add('printing-raw-excel');
+    }
     
     const style = document.createElement('style');
     style.id = 'raw-excel-print-style';
@@ -101,10 +103,10 @@ function App() {
           size: letter landscape !important;
           margin: 0.25in !important;
         }
-        #root > :not(.raw-excel-print-wrapper) {
+        #root.printing-raw-excel > :not(.raw-excel-print-wrapper) {
           display: none !important;
         }
-        body, html, #root {
+        body, html, #root.printing-raw-excel {
           background: #ffffff !important;
           color: #000000 !important;
           margin: 0 !important;
@@ -113,7 +115,7 @@ function App() {
           height: auto !important;
           overflow: visible !important;
         }
-        .raw-excel-print-wrapper {
+        #root.printing-raw-excel .raw-excel-print-wrapper {
           display: block !important;
           width: 100% !important;
           margin: 0 !important;
@@ -164,11 +166,13 @@ function App() {
 
     setTimeout(() => {
       window.print();
-      setIsPrintingRawExcel(false);
+      if (rootEl) {
+        rootEl.classList.remove('printing-raw-excel');
+      }
       document.title = originalTitle;
       const styleEl = document.getElementById('raw-excel-print-style');
       if (styleEl) styleEl.remove();
-    }, 200);
+    }, 80);
   };
 
   const handleDragOver = (e, type) => {
@@ -906,7 +910,7 @@ function App() {
       </footer>
 
       {/* Renderizado especial para impresión de Planilla Completa */}
-      {isPrintingRawExcel && rawExcelRows && rawExcelRows.length > 0 && (
+      {rawExcelRows && rawExcelRows.length > 0 && (
         <div className="raw-excel-print-wrapper" style={{ display: 'none' }}>
           <div className="raw-excel-print-title">
             Planilla Completa Original: {file?.name}
