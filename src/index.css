@@ -1511,3 +1511,58 @@ body.light-theme .alert-badge-pozo span {
 
 /* Estilos de impresión de Vale movidos dinámicamente a ValeConsumoSection.jsx */
 
+/* Custom Instant Tooltip */
+.tooltip-container {
+  position: relative;
+  cursor: help;
+  text-decoration: underline dotted var(--text-secondary);
+}
+
+.tooltip-container .tooltip-text {
+  visibility: hidden;
+  background-color: #1e293b;
+  color: #ffffff;
+  text-align: center;
+  border-radius: 4px;
+  padding: 0.35rem 0.6rem;
+  position: absolute;
+  z-index: 100;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.12s ease-in-out, transform 0.12s ease-in-out;
+  font-size: 0.7rem;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Tooltip Arrow */
+.tooltip-container .tooltip-text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1e293b transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Ocultar tooltips en la impresión para que la planilla salga limpia */
+@media print {
+  .tooltip-text {
+    display: none !important;
+  }
+  .tooltip-container {
+    text-decoration: none !important;
+  }
+}
+

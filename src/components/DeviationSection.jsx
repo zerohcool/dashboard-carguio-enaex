@@ -363,7 +363,7 @@ function DeviationSection({ filteredData, theme }) {
       )}
 
       {/* Tabla de Desviaciones */}
-      <div className="table-wrapper" style={{ margin: 0 }}>
+      <div className="table-wrapper" style={{ margin: 0, overflow: 'visible' }}>
         <table className="data-table deviation-table" style={{ width: '100%' }}>
           <thead>
             <tr>
@@ -387,9 +387,6 @@ function DeviationSection({ filteredData, theme }) {
               const subidaLineal = dInches > 0 && item.densidad > 0 
                 ? (0.50671 * (dInches * dInches) * item.densidad) 
                 : 0;
-              const tooltipText = subidaLineal > 0 
-                ? `Subida lineal del explosivo: ${subidaLineal.toFixed(1)} kg x mt` 
-                : 'Información de diámetro o densidad no disponible';
 
               return (
                 <tr key={idx}>
@@ -401,8 +398,11 @@ function DeviationSection({ filteredData, theme }) {
                       <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(vacío)</span>
                     )}
                   </td>
-                  <td title={tooltipText} style={{ cursor: 'help', textDecoration: 'underline dotted var(--text-secondary)', fontWeight: '500' }}>
+                  <td className="tooltip-container" style={{ fontWeight: '500' }}>
                     {item.diametro}
+                    {subidaLineal > 0 && (
+                      <span className="tooltip-text">{`Subida lineal ${subidaLineal.toFixed(1)} kg x mt`}</span>
+                    )}
                   </td>
                 <td>{item.longitudReal !== null ? `${item.longitudReal.toFixed(2)} m` : '-'}</td>
                 <td>{item.taco !== null ? `${item.taco.toFixed(2)} m` : '-'}</td>
