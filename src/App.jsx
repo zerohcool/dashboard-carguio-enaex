@@ -642,23 +642,21 @@ function App() {
                     padding: '0 1rem',
                     height: '38px',
                     borderRadius: '8px',
-                    background: theme === 'dark' ? '#1f2937' : '#ffffff',
-                    border: theme === 'dark' ? '1px solid #374151' : '1px solid #d0d5dd',
-                    color: theme === 'dark' ? '#f3f4f6' : '#344054',
+                    background: '#7f56d9',
+                    border: '1px solid #7f56d9',
+                    color: '#ffffff',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)'
                   }}
                   title="Genera un PDF con la planilla original completa en orientación horizontal (Carta)"
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = theme === 'dark' ? '#374151' : '#f9fafb';
-                    e.currentTarget.style.borderColor = theme === 'dark' ? '#4b5563' : '#d0d5dd';
-                    e.currentTarget.style.color = theme === 'dark' ? '#ffffff' : '#1d2939';
+                    e.currentTarget.style.background = '#6941c6';
+                    e.currentTarget.style.borderColor = '#6941c6';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = theme === 'dark' ? '#1f2937' : '#ffffff';
-                    e.currentTarget.style.borderColor = theme === 'dark' ? '#374151' : '#d0d5dd';
-                    e.currentTarget.style.color = theme === 'dark' ? '#f3f4f6' : '#344054';
+                    e.currentTarget.style.background = '#7f56d9';
+                    e.currentTarget.style.borderColor = '#7f56d9';
                   }}
                 >
                   <Printer size={15} /> Imprimir Planilla
