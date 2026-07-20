@@ -562,6 +562,76 @@ function App() {
               <p>Control de Tronadura y Pozos</p>
             </div>
           </div>
+
+          {/* Segmented control for Tab Navigation */}
+          <div className="no-print header-navigation" style={{ 
+            display: 'flex', 
+            background: 'rgba(255, 255, 255, 0.05)', 
+            border: '1px solid rgba(255, 255, 255, 0.08)', 
+            borderRadius: '8px', 
+            padding: '3px',
+            gap: '2px'
+          }}>
+            <button 
+              onClick={() => setActiveTab('dashboard')}
+              style={{
+                height: '32px',
+                padding: '0 1.25rem',
+                borderRadius: '6px',
+                fontSize: '0.85rem',
+                fontWeight: '600',
+                border: 'none',
+                background: activeTab === 'dashboard' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                color: activeTab === 'dashboard' ? '#ffffff' : 'rgba(255, 255, 255, 0.65)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== 'dashboard') {
+                  e.currentTarget.style.color = '#ffffff';
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== 'dashboard') {
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.65)';
+                  e.currentTarget.style.background = 'transparent';
+                }
+              }}
+            >
+              Dashboard de Carguío
+            </button>
+            <button 
+              onClick={() => setActiveTab('vale')}
+              style={{
+                height: '32px',
+                padding: '0 1.25rem',
+                borderRadius: '6px',
+                fontSize: '0.85rem',
+                fontWeight: '600',
+                border: 'none',
+                background: activeTab === 'vale' ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
+                color: activeTab === 'vale' ? '#ffffff' : 'rgba(255, 255, 255, 0.65)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== 'vale') {
+                  e.currentTarget.style.color = '#ffffff';
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== 'vale') {
+                  e.currentTarget.style.color = 'rgba(255, 255, 255, 0.65)';
+                  e.currentTarget.style.background = 'transparent';
+                }
+              }}
+            >
+              Vale de Consumo
+            </button>
+          </div>
+
           <div className="no-print" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
             {data && (
               <>
@@ -788,30 +858,7 @@ function App() {
                 </div>
               </div>
             </div>
-            {/* Navigation Tabs (no-print) */}
-            <div className="no-print" style={{ 
-              display: 'flex', 
-              gap: '1rem', 
-              marginBottom: '1.5rem', 
-              borderBottom: '1px solid var(--border-color)',
-              paddingBottom: '0.75rem',
-              marginTop: '0.5rem'
-            }}>
-              <button 
-                className={`btn ${activeTab === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('dashboard')}
-                style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', cursor: 'pointer' }}
-              >
-                Dashboard de Carguío
-              </button>
-              <button 
-                className={`btn ${activeTab === 'vale' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={() => setActiveTab('vale')}
-                style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', cursor: 'pointer' }}
-              >
-                Vale de Consumo
-              </button>
-            </div>
+
 
             {activeTab === 'dashboard' ? (
               <>
