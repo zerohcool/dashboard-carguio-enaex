@@ -575,22 +575,23 @@ function App() {
                     gap: '0.5rem',
                     fontSize: '0.85rem',
                     fontWeight: '600',
-                    padding: '0 1.25rem',
+                    padding: '0 1rem',
                     height: '38px',
                     borderRadius: '8px',
-                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                    border: '1px solid rgba(239, 68, 68, 0.2)',
-                    color: '#dc2626',
+                    backgroundColor: '#d92d20',
+                    border: '1px solid #d92d20',
+                    color: '#ffffff',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease'
+                    transition: 'all 0.15s ease',
+                    boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
-                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                    e.currentTarget.style.backgroundColor = '#b42318';
+                    e.currentTarget.style.borderColor = '#b42318';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.08)';
-                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                    e.currentTarget.style.backgroundColor = '#d92d20';
+                    e.currentTarget.style.borderColor = '#d92d20';
                   }}
                 >
                   <Trash2 size={15} /> Limpiar Datos
@@ -606,22 +607,23 @@ function App() {
                     gap: '0.5rem', 
                     fontSize: '0.85rem', 
                     fontWeight: '600',
-                    padding: '0 1.25rem',
+                    padding: '0 1rem',
                     height: '38px',
                     borderRadius: '8px',
-                    backgroundColor: '#2563eb',
-                    border: '1px solid #2563eb',
+                    backgroundColor: '#1570ef',
+                    border: '1px solid #1570ef',
                     color: '#ffffff',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease'
+                    transition: 'all 0.15s ease',
+                    boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#1d4ed8';
-                    e.currentTarget.style.borderColor = '#1d4ed8';
+                    e.currentTarget.style.backgroundColor = '#175cd3';
+                    e.currentTarget.style.borderColor = '#175cd3';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#2563eb';
-                    e.currentTarget.style.borderColor = '#2563eb';
+                    e.currentTarget.style.backgroundColor = '#1570ef';
+                    e.currentTarget.style.borderColor = '#1570ef';
                   }}
                 >
                   <FileText size={15} /> Generar PDF
@@ -637,23 +639,26 @@ function App() {
                     gap: '0.5rem', 
                     fontSize: '0.85rem', 
                     fontWeight: '600',
-                    padding: '0 1.25rem',
+                    padding: '0 1rem',
                     height: '38px',
                     borderRadius: '8px',
-                    backgroundColor: 'rgba(37, 99, 235, 0.08)',
-                    border: '1px solid rgba(37, 99, 235, 0.2)',
-                    color: '#2563eb',
+                    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                    border: theme === 'dark' ? '1px solid #374151' : '1px solid #d0d5dd',
+                    color: theme === 'dark' ? '#f3f4f6' : '#344054',
                     cursor: 'pointer',
-                    transition: 'all 0.15s ease'
+                    transition: 'all 0.15s ease',
+                    boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)'
                   }}
                   title="Genera un PDF con la planilla original completa en orientación horizontal (Carta)"
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.15)';
-                    e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.3)';
+                    e.currentTarget.style.backgroundColor = theme === 'dark' ? '#374151' : '#f9fafb';
+                    e.currentTarget.style.borderColor = theme === 'dark' ? '#4b5563' : '#d0d5dd';
+                    e.currentTarget.style.color = theme === 'dark' ? '#ffffff' : '#1d2939';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.08)';
-                    e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.2)';
+                    e.currentTarget.style.backgroundColor = theme === 'dark' ? '#1f2937' : '#ffffff';
+                    e.currentTarget.style.borderColor = theme === 'dark' ? '#374151' : '#d0d5dd';
+                    e.currentTarget.style.color = theme === 'dark' ? '#f3f4f6' : '#344054';
                   }}
                 >
                   <Printer size={15} /> Imprimir Planilla
