@@ -562,22 +562,106 @@ function App() {
             </div>
           </div>
           <div className="no-print" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-            <button className="btn btn-secondary" style={{ padding: '0.5rem', borderRadius: '50%', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={toggleTheme} title={`Cambiar a modo ${theme === 'dark' ? 'claro' : 'oscuro'}`}>
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
             {data && (
               <>
-                <button className="btn btn-primary" onClick={handlePrintPDF} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
+                <button 
+                  className="btn" 
+                  onClick={handleClear}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.85rem',
+                    fontWeight: '600',
+                    padding: '0 1.25rem',
+                    height: '38px',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    color: '#dc2626',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.08)';
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                  }}
+                >
+                  <Trash2 size={15} /> Limpiar Datos
+                </button>
+
+                <button 
+                  className="btn" 
+                  onClick={handlePrintPDF} 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    gap: '0.5rem', 
+                    fontSize: '0.85rem', 
+                    fontWeight: '600',
+                    padding: '0 1.25rem',
+                    height: '38px',
+                    borderRadius: '8px',
+                    backgroundColor: '#2563eb',
+                    border: '1px solid #2563eb',
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#1d4ed8';
+                    e.currentTarget.style.borderColor = '#1d4ed8';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#2563eb';
+                    e.currentTarget.style.borderColor = '#2563eb';
+                  }}
+                >
                   <FileText size={15} /> Generar PDF
                 </button>
-                <button className="btn btn-primary" onClick={handlePrintRawExcel} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem', background: '#059669', borderColor: '#059669' }} title="Genera un PDF con la planilla original completa en orientación horizontal (Carta)">
-                  <Printer size={15} /> Imprimir Planilla Completa
-                </button>
-                <button className="btn btn-secondary" onClick={handleClear}>
-                  <Trash2 size={16} /> Limpiar Datos
+
+                <button 
+                  className="btn" 
+                  onClick={handlePrintRawExcel} 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    gap: '0.5rem', 
+                    fontSize: '0.85rem', 
+                    fontWeight: '600',
+                    padding: '0 1.25rem',
+                    height: '38px',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                    border: '1px solid rgba(37, 99, 235, 0.2)',
+                    color: '#2563eb',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Genera un PDF con la planilla original completa en orientación horizontal (Carta)"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.15)';
+                    e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.08)';
+                    e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.2)';
+                  }}
+                >
+                  <Printer size={15} /> Imprimir Planilla
                 </button>
               </>
             )}
+            <button className="btn btn-secondary" style={{ padding: '0.5rem', borderRadius: '50%', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={toggleTheme} title={`Cambiar a modo ${theme === 'dark' ? 'claro' : 'oscuro'}`}>
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
           </div>
         </div>
       </header>
