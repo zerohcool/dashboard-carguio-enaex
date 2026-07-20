@@ -554,7 +554,8 @@ function App() {
       <header className="app-header">
         <div className="header-content">
           <div className="logo-section" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <img src="/logo-enaex.png" alt="Enaex" style={{ height: '36px', objectFit: 'contain' }} />
+            <img src="/logo-enaex-white.png" alt="Enaex" className="logo-banner-screen" style={{ height: '36px', objectFit: 'contain' }} />
+            <img src="/logo-enaex-dark.png" alt="Enaex" className="logo-banner-print" style={{ height: '36px', objectFit: 'contain' }} />
             <div style={{ width: '1px', height: '28px', background: 'var(--border-color)' }}></div>
             <div className="logo-title">
               <h1>Dashboard de Carguío</h1>

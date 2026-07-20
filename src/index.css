@@ -1741,3 +1741,20 @@ body.light-theme .pozo-cell-clickable:hover {
   background-color: #f1f5f9 !important;
 }
 
+/* Swapping of logo variants for screen vs print contrast */
+.logo-banner-screen {
+  display: block !important;
+}
+.logo-banner-print {
+  display: none !important;
+}
+
+@media print {
+  .logo-banner-screen {
+    display: none !important;
+  }
+  .logo-banner-print {
+    display: block !important;
+  }
+}
+

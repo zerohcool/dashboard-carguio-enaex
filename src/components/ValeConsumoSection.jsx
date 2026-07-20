@@ -342,8 +342,8 @@ function ValeConsumoSection({ filteredData, file }) {
         {/* Encabezado del Vale */}
         <div className="vale-doc-header">
           <div className="vale-doc-logos">
-            <div className="logo-box">
-              <span className="logo-placeholder enaex-logo">Enaex</span>
+            <div className="logo-box" style={{ border: 'none', background: 'transparent' }}>
+              <img src="/logo-enaex-dark.png" alt="Enaex" style={{ height: '32px', objectFit: 'contain' }} />
             </div>
             <div className="logo-box sierra-gorda-box">
               <span className="logo-placeholder sg-logo">Sierra Gorda <small>SCM</small></span>
