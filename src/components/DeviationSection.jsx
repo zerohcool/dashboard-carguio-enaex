@@ -126,14 +126,11 @@ function DeviationSection({ filteredData, rawExcelRows, theme }) {
   };
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [chartPage, setChartPage] = useState(1);
-  const chartPageSize = 50;
+  const [pageSize, setPageSize] = useState(15);
 
-  // Resetear páginas de tabla y gráfico al cambiar los filtros
+  // Resetear páginas de tabla al cambiar los filtros
   useEffect(() => {
     setCurrentPage(1);
-    setChartPage(1);
   }, [filteredData]);
 
   // Calcular las desviaciones para cada pozo calificado
@@ -215,7 +212,6 @@ function DeviationSection({ filteredData, rawExcelRows, theme }) {
 
   // Paginación
   const totalPages = Math.ceil(deviationData.length / pageSize);
-  const totalChartPages = Math.ceil(deviationData.length / chartPageSize);
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     return deviationData.slice(start, start + pageSize);
@@ -230,11 +226,9 @@ function DeviationSection({ filteredData, rawExcelRows, theme }) {
   const tooltipBorder = isLight ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)';
 
   const chartData = useMemo(() => {
-    const start = (chartPage - 1) * chartPageSize;
-    const sample = deviationData.slice(start, start + chartPageSize);
-    const labels = sample.map(item => item.pozo);
-    const realValues = sample.map(item => item.cargaReal);
-    const teoricaValues = sample.map(item => item.cargaTeorica);
+    const labels = paginatedData.map(item => item.pozo);
+    const realValues = paginatedData.map(item => item.cargaReal);
+    const teoricaValues = paginatedData.map(item => item.cargaTeorica);
 
     return {
       labels,
@@ -266,7 +260,7 @@ function DeviationSection({ filteredData, rawExcelRows, theme }) {
         }
       ]
     };
-  }, [deviationData, chartPage]);
+  }, [paginatedData]);
 
   const chartOptions = useMemo(() => ({
     responsive: true,
@@ -492,32 +486,8 @@ function DeviationSection({ filteredData, rawExcelRows, theme }) {
       <div className="chart-card glass-panel" style={{ marginTop: '2rem', padding: '1.5rem', background: 'rgba(255,255,255,0.01)' }}>
         <div className="chart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
           <h3 className="chart-title" style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>
-            Comparación de Carga Real vs. Teórica (Pozos {(chartPage - 1) * chartPageSize + 1} al {Math.min(chartPage * chartPageSize, deviationData.length)} de {deviationData.length})
+            Comparación de Carga Real vs. Teórica (Página {currentPage} - {paginatedData.length} pozos)
           </h3>
-          
-          {totalChartPages > 1 && (
-            <div className="pagination-controls" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Gráfico pág. {chartPage} de {totalChartPages}</span>
-              <button 
-                className="page-btn" 
-                onClick={() => setChartPage(prev => Math.max(prev - 1, 1))}
-                disabled={chartPage === 1}
-                style={{ padding: '0.25rem 0.5rem', minWidth: 'auto', height: '30px' }}
-                title="Pozos anteriores"
-              >
-                <ChevronLeft size={14} style={{ display: 'block' }} />
-              </button>
-              <button 
-                className="page-btn" 
-                onClick={() => setChartPage(prev => Math.min(prev + 1, totalChartPages))}
-                disabled={chartPage === totalChartPages}
-                style={{ padding: '0.25rem 0.5rem', minWidth: 'auto', height: '30px' }}
-                title="Pozos siguientes"
-              >
-                <ChevronRight size={14} style={{ display: 'block' }} />
-              </button>
-            </div>
-          )}
         </div>
         <div className="chart-container" style={{ height: '300px', position: 'relative' }}>
           <Line 
