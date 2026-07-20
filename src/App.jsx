@@ -24,6 +24,7 @@ import { getRowAlerts } from './utils/getRowAlerts';
 function App() {
   const [file, setFile] = useState(null);
   const [data, setData] = useState(null);
+  const [rawExcelRows, setRawExcelRows] = useState([]);
   const [fileUrl, setFileUrl] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'vale'
   const [loading, setLoading] = useState(false);
@@ -256,6 +257,7 @@ function App() {
           name: fileObject.name,
           size: (fileObject.size / 1024).toFixed(1) + ' KB'
         });
+        setRawExcelRows(jsonData);
         setData(cleanedData);
         setLoading(false);
       } catch (err) {
@@ -280,6 +282,7 @@ function App() {
     }
     setFile(null);
     setData(null);
+    setRawExcelRows([]);
     setError(null);
     setFilters({
       fase: '',
@@ -741,7 +744,7 @@ function App() {
                 </section>
 
                 {/* Sección de Alertas de Calidad de Datos */}
-                <AlertsSection filteredData={filteredData} />
+                <AlertsSection filteredData={filteredData} rawExcelRows={rawExcelRows} />
 
                 {/* Título de Selección de Explosivo y Kilos */}
                 <div className="explosive-selection-banner glass-panel">

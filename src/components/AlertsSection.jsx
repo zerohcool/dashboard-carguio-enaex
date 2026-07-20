@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 
 const isNotPureInches = (diamStr) => {
   if (!diamStr) return false;
@@ -13,7 +13,61 @@ const isNotPureInches = (diamStr) => {
   return false;
 };
 
-function AlertsSection({ filteredData }) {
+function AlertsSection({ filteredData, rawExcelRows }) {
+  const [inspectingPozo, setInspectingPozo] = useState(null);
+
+  const handleInspectPozo = (pozoNum, errorType) => {
+    if (!rawExcelRows || rawExcelRows.length === 0) return;
+
+    const foundRow = rawExcelRows.find(row => {
+      const pVal = row['N° Pozo'] || row['pozo'] || row['Pozo'];
+      if (pVal !== undefined && pVal !== null) {
+        return String(pVal).trim() === String(pozoNum).trim();
+      }
+      return false;
+    });
+
+    if (foundRow) {
+      setInspectingPozo({
+        pozo: pozoNum,
+        row: foundRow,
+        errorType: errorType
+      });
+    }
+  };
+
+  const shouldHighlightCell = (key, value, errorType) => {
+    const cleanKey = String(key).toLowerCase().trim();
+    const valStr = value !== null && value !== undefined ? String(value).trim() : '';
+
+    if (errorType === 'fondo') {
+      if (cleanKey === 'carga fondo' || cleanKey === 'carga fondo (kg)') {
+        return 'cell-highlight-error';
+      }
+    }
+    
+    if (errorType === 'empty') {
+      const criticalKeys = [
+        'carga fondo', 'carga fondo (kg)', 
+        'carga columna', 'carga columna (kg)',
+        'tipo fondo', 'tipo fondo (kg)', 'tipo', 'tipo.',
+        'camión fondo', 'camión columna', 'camion', 'camion.',
+        'operador'
+      ];
+      if (criticalKeys.includes(cleanKey) && valStr === '') {
+        return 'cell-highlight-warning';
+      }
+    }
+    
+    if (errorType === 'diameter') {
+      if (cleanKey === 'diametro' || cleanKey === 'diámetro') {
+        return 'cell-highlight-error';
+      }
+    }
+    
+    return '';
+  };
+
   // Procesamos los pozos con anomalías
   const alertsData = useMemo(() => {
     const fondoIssues = []; // Decimales o vacíos en Carga Fondo
@@ -145,13 +199,14 @@ function AlertsSection({ filteredData }) {
           
           {alertsData.fondoIssues.length === 0 ? (
             <span className="alert-card-empty-msg">✓ Todos los pozos tienen carga de fondo entera y registrada.</span>
-          ) : (
+          ) :           (
              <div className="alert-card-pozos-list">
               {alertsData.fondoIssues.map((issue, idx) => (
                 <span 
                   key={idx} 
-                  className="alert-badge-pozo" 
-                  title={`Carga de fondo: ${issue.reason}`}
+                  className="alert-badge-pozo clickable-alert-badge" 
+                  title={`Haz clic para inspeccionar fila. Carga de fondo: ${issue.reason}`}
+                  onClick={() => handleInspectPozo(issue.pozo, 'fondo')}
                   style={{ 
                     borderLeft: issue.type === 'decimal' ? '3px solid var(--danger)' : '3px solid var(--text-muted)'
                   }}
@@ -180,8 +235,9 @@ function AlertsSection({ filteredData }) {
               {alertsData.emptyFieldIssues.map((issue, idx) => (
                 <span 
                   key={idx} 
-                  className="alert-badge-pozo" 
-                  title={`Falta rellenar: ${issue.fields}`}
+                  className="alert-badge-pozo clickable-alert-badge" 
+                  title={`Haz clic para inspeccionar fila. Falta rellenar: ${issue.fields}`}
+                  onClick={() => handleInspectPozo(issue.pozo, 'empty')}
                   style={{ borderLeft: '3px solid var(--warning)' }}
                 >
                   P-{issue.pozo}
@@ -211,8 +267,9 @@ function AlertsSection({ filteredData }) {
               {alertsData.diameterIssues.map((issue, idx) => (
                 <span 
                   key={idx} 
-                  className="alert-badge-pozo" 
-                  title={`Diámetro actual: ${issue.diametro}`}
+                  className="alert-badge-pozo clickable-alert-badge" 
+                  title={`Haz clic para inspeccionar fila. Diámetro actual: ${issue.diametro}`}
+                  onClick={() => handleInspectPozo(issue.pozo, 'diameter')}
                   style={{ borderLeft: '3px solid #ef4444' }}
                 >
                   P-{issue.pozo}
@@ -223,6 +280,58 @@ function AlertsSection({ filteredData }) {
           )}
         </div>
       </div>
+
+      {/* Modal Inspector de Fila Original */}
+      {inspectingPozo && (
+        <div className="modal-overlay no-print" onClick={() => setInspectingPozo(null)}>
+          <div className="modal-content-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-bar">
+              <div className="modal-header-title">
+                <AlertTriangle size={18} style={{ color: '#ef4444' }} />
+                <span>
+                  Inspector de Fila Original: Pozo <strong>{inspectingPozo.pozo}</strong>
+                </span>
+              </div>
+              <button className="modal-close-btn" onClick={() => setInspectingPozo(null)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body-area">
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                Mostrando la fila tal como aparece en el archivo Excel original. La celda que generó la alerta se destaca en color.
+              </p>
+              
+              <div className="inspect-table-wrapper">
+                <table className="inspect-table">
+                  <thead>
+                    <tr>
+                      {Object.keys(inspectingPozo.row).map((key) => (
+                        <th key={key}>{key}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      {Object.entries(inspectingPozo.row).map(([key, val]) => {
+                        const highlightClass = shouldHighlightCell(key, val, inspectingPozo.errorType);
+                        return (
+                          <td key={key} className={highlightClass}>
+                            {val === null || val === undefined || String(val).trim() === '' ? (
+                              <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(vacío)</span>
+                            ) : (
+                              String(val)
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
