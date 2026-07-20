@@ -103,7 +103,11 @@ function App() {
           size: letter landscape !important;
           margin: 0.25in !important;
         }
-        #root.printing-raw-excel > :not(.raw-excel-print-wrapper) {
+        #root.printing-raw-excel .app-header,
+        #root.printing-raw-excel .container,
+        #root.printing-raw-excel .app-footer,
+        #root.printing-raw-excel .no-print,
+        #root.printing-raw-excel .whatsapp-float {
           display: none !important;
         }
         body, html, #root.printing-raw-excel {
@@ -546,7 +550,7 @@ function App() {
   };
 
   return (
-    <div id="root" className={`tab-${activeTab}`}>
+    <div className={`tab-${activeTab}`}>
       <header className="app-header">
         <div className="header-content">
           <div className="logo-section" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
