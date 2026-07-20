@@ -12,7 +12,8 @@ import {
   Layers,
   Sun,
   Moon,
-  FileText
+  FileText,
+  Printer
 } from 'lucide-react';
 import DashboardOverview from './components/DashboardOverview';
 import DataTable from './components/DataTable';
@@ -25,6 +26,7 @@ function App() {
   const [file, setFile] = useState(null);
   const [data, setData] = useState(null);
   const [rawExcelRows, setRawExcelRows] = useState([]);
+  const [isPrintingRawExcel, setIsPrintingRawExcel] = useState(false);
   const [fileUrl, setFileUrl] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'vale'
   const [loading, setLoading] = useState(false);
@@ -84,6 +86,89 @@ function App() {
     setTimeout(() => {
       document.title = originalTitle;
     }, 150);
+  };
+
+  const handlePrintRawExcel = () => {
+    if (!rawExcelRows || rawExcelRows.length === 0) return;
+    
+    setIsPrintingRawExcel(true);
+    
+    const style = document.createElement('style');
+    style.id = 'raw-excel-print-style';
+    style.innerHTML = `
+      @media print {
+        @page {
+          size: letter landscape !important;
+          margin: 0.25in !important;
+        }
+        #root > :not(.raw-excel-print-wrapper) {
+          display: none !important;
+        }
+        body, html, #root {
+          background: #ffffff !important;
+          color: #000000 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+          height: auto !important;
+          overflow: visible !important;
+        }
+        .raw-excel-print-wrapper {
+          display: block !important;
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        .raw-excel-print-title {
+          font-family: 'Outfit', sans-serif !important;
+          font-size: 11pt !important;
+          font-weight: 700 !important;
+          margin-bottom: 0.5rem !important;
+          color: #1e3a8a !important;
+          border-bottom: 1.5px solid #1e3a8a !important;
+          padding-bottom: 0.2rem !important;
+        }
+        .raw-excel-print-table {
+          width: 100% !important;
+          border-collapse: collapse !important;
+          table-layout: auto !important;
+        }
+        .raw-excel-print-table th {
+          background: #f1f5f9 !important;
+          color: #1e293b !important;
+          font-family: 'Outfit', sans-serif !important;
+          font-size: 5.5pt !important;
+          font-weight: 700 !important;
+          padding: 3px 1.5px !important;
+          border: 0.5px solid #94a3b8 !important;
+          text-align: center !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+        }
+        .raw-excel-print-table td {
+          font-family: 'Outfit', sans-serif !important;
+          font-size: 5.5pt !important;
+          padding: 3px 1.5px !important;
+          border: 0.5px solid #cbd5e1 !important;
+          text-align: center !important;
+          white-space: normal !important;
+          word-break: break-word !important;
+          color: #334155 !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    const originalTitle = document.title;
+    document.title = `Planilla_Original_${file?.name ? file.name.replace(/\.[^/.]+$/, "") : 'Excel'}`;
+
+    setTimeout(() => {
+      window.print();
+      setIsPrintingRawExcel(false);
+      document.title = originalTitle;
+      const styleEl = document.getElementById('raw-excel-print-style');
+      if (styleEl) styleEl.remove();
+    }, 200);
   };
 
   const handleDragOver = (e, type) => {
@@ -477,6 +562,9 @@ function App() {
                 <button className="btn btn-primary" onClick={handlePrintPDF} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem' }}>
                   <FileText size={15} /> Generar PDF
                 </button>
+                <button className="btn btn-primary" onClick={handlePrintRawExcel} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', padding: '0.5rem 1rem', background: '#059669', borderColor: '#059669' }} title="Genera un PDF con la planilla original completa en orientación horizontal (Carta)">
+                  <Printer size={15} /> Imprimir Planilla Completa
+                </button>
                 <button className="btn btn-secondary" onClick={handleClear}>
                   <Trash2 size={16} /> Limpiar Datos
                 </button>
@@ -816,6 +904,39 @@ function App() {
           </div>
         </div>
       </footer>
+
+      {/* Renderizado especial para impresión de Planilla Completa */}
+      {isPrintingRawExcel && rawExcelRows && rawExcelRows.length > 0 && (
+        <div className="raw-excel-print-wrapper" style={{ display: 'none' }}>
+          <div className="raw-excel-print-title">
+            Planilla Completa Original: {file?.name}
+          </div>
+          <table className="raw-excel-print-table">
+            <thead>
+              <tr>
+                {Object.keys(rawExcelRows[0] || {}).map((key) => (
+                  <th key={key}>{key}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rawExcelRows.map((row, idx) => (
+                <tr key={idx}>
+                  {Object.entries(row).map(([key, val]) => (
+                    <td key={key}>
+                      {val === null || val === undefined || String(val).trim() === '' ? (
+                        '-'
+                      ) : (
+                        String(val)
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
