@@ -51,5 +51,13 @@ export const getRowAlerts = (row) => {
     alerts.push('Diámetro en mm/err');
   }
   
+  // 7. Inconsistencia en Carga Total (Suma de cargas no coincide)
+  if (row.cargaTotal !== null && row.cargaTotal !== undefined) {
+    const expectedTotal = (row.cargaFondo || 0) + (row.cargaColumna || 0);
+    if (Math.abs(row.cargaTotal - expectedTotal) > 0.1) {
+      alerts.push('Inconsistencia en Carga Total');
+    }
+  }
+  
   return alerts;
 };

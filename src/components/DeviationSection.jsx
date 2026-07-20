@@ -140,7 +140,7 @@ function DeviationSection({ filteredData, rawExcelRows, theme }) {
         row.longitudReal === null || 
         row.taco === null || 
         !row.diametro || 
-        row.cargaFondo === null
+        row.cargaTotal === null
       ) {
         return null;
       }
@@ -157,7 +157,7 @@ function DeviationSection({ filteredData, rawExcelRows, theme }) {
       // Fórmula del volumen de cilindro en base a pulgadas y metros:
       // Carga Teórica (kg) = Altura Carga (m) * 0.5067 * Diámetro² (in) * Densidad (g/cc)
       const cargaTeorica = height * 0.50671 * (dInches * dInches) * density;
-      const desviacionKg = row.cargaFondo - cargaTeorica;
+      const desviacionKg = row.cargaTotal - cargaTeorica;
       const desviacionPct = (desviacionKg / cargaTeorica) * 100;
       
       const tolerance = getProductTolerance(row.tipoFondo);
@@ -172,7 +172,7 @@ function DeviationSection({ filteredData, rawExcelRows, theme }) {
         alturaCarga: height,
         explosivo: row.tipoFondo,
         densidad: density,
-        cargaReal: row.cargaFondo,
+        cargaReal: row.cargaTotal,
         cargaTeorica: parseFloat(cargaTeorica.toFixed(1)),
         desviacionKg: parseFloat(desviacionKg.toFixed(1)),
         desviacionPct: parseFloat(desviacionPct.toFixed(1)),

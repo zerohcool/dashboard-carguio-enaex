@@ -64,6 +64,16 @@ function AlertsSection({ filteredData, rawExcelRows }) {
         return 'cell-highlight-error';
       }
     }
+
+    if (errorType === 'total_mismatch') {
+      if (
+        cleanKey === 'carga fondo' || cleanKey === 'carga fondo (kg)' ||
+        cleanKey === 'carga columna' || cleanKey === 'carga columna (kg)' ||
+        cleanKey === 'carga total' || cleanKey === 'carga total (kg)'
+      ) {
+        return 'cell-highlight-error';
+      }
+    }
     
     return '';
   };
@@ -73,6 +83,7 @@ function AlertsSection({ filteredData, rawExcelRows }) {
     const fondoIssues = []; // Decimales o vacíos en Carga Fondo
     const emptyFieldIssues = []; // Celdas vacías en Carga, Tipo, Camión u Operador
     const diameterIssues = []; // Diámetros no en pulgadas
+    const totalMismatchIssues = []; // Suma de cargas no coincide con carga total
     const uniqueExplosives = new Set();
 
     filteredData.forEach(row => {
@@ -118,6 +129,17 @@ function AlertsSection({ filteredData, rawExcelRows }) {
         });
       }
 
+      // 4. Inconsistencia en Carga Total (Suma no coincide)
+      if (row.cargaTotal !== null && row.cargaTotal !== undefined) {
+        const expectedTotal = (row.cargaFondo || 0) + (row.cargaColumna || 0);
+        if (Math.abs(row.cargaTotal - expectedTotal) > 0.1) {
+          totalMismatchIssues.push({
+            pozo: row.pozo,
+            reason: `Suma: ${expectedTotal} kg vs Total: ${row.cargaTotal} kg`
+          });
+        }
+      }
+
       // Coleccionar tipos de explosivo únicos
       if (row.tipoFondo) uniqueExplosives.add(row.tipoFondo);
       if (row.tipoColumna) uniqueExplosives.add(row.tipoColumna);
@@ -130,6 +152,7 @@ function AlertsSection({ filteredData, rawExcelRows }) {
       fondoIssues, 
       emptyFieldIssues, 
       diameterIssues, 
+      totalMismatchIssues,
       hasMultipleExplosives, 
       explosiveListStr 
     };
@@ -139,6 +162,7 @@ function AlertsSection({ filteredData, rawExcelRows }) {
     alertsData.fondoIssues.length > 0 || 
     alertsData.emptyFieldIssues.length > 0 || 
     alertsData.diameterIssues.length > 0 ||
+    alertsData.totalMismatchIssues.length > 0 ||
     alertsData.hasMultipleExplosives;
 
   if (!hasAnyAlerts) {
@@ -158,6 +182,7 @@ function AlertsSection({ filteredData, rawExcelRows }) {
     alertsData.fondoIssues.length + 
     alertsData.emptyFieldIssues.length + 
     alertsData.diameterIssues.length + 
+    alertsData.totalMismatchIssues.length +
     (alertsData.hasMultipleExplosives ? 1 : 0);
 
   return (
@@ -274,6 +299,38 @@ function AlertsSection({ filteredData, rawExcelRows }) {
                 >
                   P-{issue.pozo}
                   <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>({issue.diametro})</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Card 4: Inconsistencia en Carga Total */}
+        <div className="alert-card-item danger-alert" style={{ borderLeft: '4px solid #f97316' }}>
+          <div className="alert-card-title">
+            <span>Inconsistencia: Carga Total vs. Suma de Cargas</span>
+            <span className={`alert-card-badge ${alertsData.totalMismatchIssues.length > 0 ? 'danger' : 'success'}`} style={{
+              background: alertsData.totalMismatchIssues.length > 0 ? 'rgba(249, 115, 22, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+              color: alertsData.totalMismatchIssues.length > 0 ? '#f97316' : '#10b981'
+            }}>
+              {alertsData.totalMismatchIssues.length} pozos
+            </span>
+          </div>
+          
+          {alertsData.totalMismatchIssues.length === 0 ? (
+            <span className="alert-card-empty-msg">✓ Todos los pozos coinciden la carga total con la suma de fondo y columna.</span>
+          ) : (
+            <div className="alert-card-pozos-list">
+              {alertsData.totalMismatchIssues.map((issue, idx) => (
+                <span 
+                  key={idx} 
+                  className="alert-badge-pozo clickable-alert-badge" 
+                  title={`Haz clic para inspeccionar fila. ${issue.reason}`}
+                  onClick={() => handleInspectPozo(issue.pozo, 'total_mismatch')}
+                  style={{ borderLeft: '3px solid #f97316' }}
+                >
+                  P-{issue.pozo}
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>({issue.reason.split(' vs ')[0]})</span>
                 </span>
               ))}
             </div>
