@@ -578,7 +578,7 @@ function App() {
                     padding: '0 1rem',
                     height: '38px',
                     borderRadius: '8px',
-                    backgroundColor: '#d92d20',
+                    background: '#d92d20',
                     border: '1px solid #d92d20',
                     color: '#ffffff',
                     cursor: 'pointer',
@@ -586,11 +586,11 @@ function App() {
                     boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#b42318';
+                    e.currentTarget.style.background = '#b42318';
                     e.currentTarget.style.borderColor = '#b42318';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#d92d20';
+                    e.currentTarget.style.background = '#d92d20';
                     e.currentTarget.style.borderColor = '#d92d20';
                   }}
                 >
@@ -610,20 +610,20 @@ function App() {
                     padding: '0 1rem',
                     height: '38px',
                     borderRadius: '8px',
-                    backgroundColor: '#1570ef',
-                    border: '1px solid #1570ef',
+                    background: '#7f56d9',
+                    border: '1px solid #7f56d9',
                     color: '#ffffff',
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     boxShadow: '0 1px 2px rgba(16, 24, 40, 0.05)'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#175cd3';
-                    e.currentTarget.style.borderColor = '#175cd3';
+                    e.currentTarget.style.background = '#6941c6';
+                    e.currentTarget.style.borderColor = '#6941c6';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#1570ef';
-                    e.currentTarget.style.borderColor = '#1570ef';
+                    e.currentTarget.style.background = '#7f56d9';
+                    e.currentTarget.style.borderColor = '#7f56d9';
                   }}
                 >
                   <FileText size={15} /> Generar PDF
@@ -642,7 +642,7 @@ function App() {
                     padding: '0 1rem',
                     height: '38px',
                     borderRadius: '8px',
-                    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                    background: theme === 'dark' ? '#1f2937' : '#ffffff',
                     border: theme === 'dark' ? '1px solid #374151' : '1px solid #d0d5dd',
                     color: theme === 'dark' ? '#f3f4f6' : '#344054',
                     cursor: 'pointer',
@@ -651,12 +651,12 @@ function App() {
                   }}
                   title="Genera un PDF con la planilla original completa en orientación horizontal (Carta)"
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = theme === 'dark' ? '#374151' : '#f9fafb';
+                    e.currentTarget.style.background = theme === 'dark' ? '#374151' : '#f9fafb';
                     e.currentTarget.style.borderColor = theme === 'dark' ? '#4b5563' : '#d0d5dd';
                     e.currentTarget.style.color = theme === 'dark' ? '#ffffff' : '#1d2939';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = theme === 'dark' ? '#1f2937' : '#ffffff';
+                    e.currentTarget.style.background = theme === 'dark' ? '#1f2937' : '#ffffff';
                     e.currentTarget.style.borderColor = theme === 'dark' ? '#374151' : '#d0d5dd';
                     e.currentTarget.style.color = theme === 'dark' ? '#f3f4f6' : '#344054';
                   }}
