@@ -68,22 +68,20 @@ Representa cuántos kilogramos de explosivo se cargan por cada metro de longitud
 
 ## 3. Detección y Señalización de Errores (Control de Calidad)
 
-La aplicación audita cada fila de la planilla importada en tiempo real buscando 4 grupos de inconsistencias:
+La aplicación audita cada fila de la planilla importada en tiempo real buscando 3 grupos de inconsistencias:
 
-| Alerta de Calidad | Criterio de Búsqueda | Consecuencia / Riesgo |
+| Alerta de Calidad | Criterio de Búsqueda | Consecuencia / Trazabilidad |
 | :--- | :--- | :--- |
-| **Cargas con Decimales o Vacías** | Se gatilla si la suma de `Carga Fondo + Carga Columna` tiene decimales o está vacía, o si la columna `Carga Total` está vacía o tiene decimales. | Indica error de tipeo manual del operador o falta de registro de pesos de carguío enteros. |
-| **Celdas Vacías Críticas** | Faltan datos obligatorios en columnas de Carga Total, o Carga Fondo y Carga Columna a la vez (ambas celdas vacías), Tipo de Explosivo, Camión u Operador. | Omisión de información clave para la trazabilidad de la tronadura. |
+| **Cargas con Decimales, Vacías o Descuadres** | Se gatilla si la suma de `Carga Fondo + Carga Columna` tiene decimales o está vacía, o si la columna `Carga Total` está vacía o tiene decimales, o si la suma de cargas no coincide con `Carga Total` (descuadre > 0.1 kg). | Indica error de tipeo manual del operador o falta de cuadratura de pesos. |
+| **Trazabilidad Mandatoria (Vacíos)** | Falta `Carga Total`, `Carga Fondo` y `Carga Columna` a la vez (pozo vacío). O falta el Tipo de Explosivo / Camión para fondo y columna a la vez. O falta Operador. **Validación Cruzada Activa**: Si `Carga Fondo > 0` exige Tipo y Camión de Fondo. Si `Carga Columna > 0` exige Tipo y Camión de Columna. | Omisión de información clave para la trazabilidad y procedencia del carguío del pozo. |
 | **Diámetro en mm o ERR** | El texto en el diámetro contiene las siglas `mm`, `err`, o números superiores a 20 (ej: `165`, indicando formato métrico). | Error de formato; los diámetros deben estar expresados en pulgadas. **El pozo no se oculta de las tablas**, sino que se limpia, convierte a pulgadas, y se resalta. |
-| **Inconsistencia de Carga Total** | La columna `Carga Total` declarada difiere de la suma de `Carga Fondo + Carga Columna` por más de `0.1 kg`. | Error en sumas del reporte o en el procesamiento del carguío. |
 
 ### Cómo se Señalan y Visualizan
 1.  **Dashboard General**: Muestra en la parte superior un panel interactivo con la cuenta de anomalías.
 2.  **Tarjetas de Pozos**: Los pozos con problemas se agrupan en insignias interactivas (badges) de color rojo (críticos) o amarillo (advertencias).
 3.  **Tabla de Desviaciones**: Los pozos que presentan error de formato en el diámetro no son omitidos; se muestran calculados y **resaltan la fila completa con un fondo rojo translúcido** (`rgba(239, 68, 68, 0.08)`) y un icono de advertencia.
 4.  **Inspector de Fila Original**: 
-    *   Al hacer clic en el número de pozo o en su tarjeta de alerta, se abre un **Modal Inspector**.
-    *   Este modal renderiza la **fila completa del Excel original**, en su orden exacto de columnas.
+    *   Al hacer clic en el número de pozo o en su tarjeta de alerta, se abre un **Modal Inspector** que renderiza la fila original de Excel.
     *   El sistema resalta la celda específica con el error utilizando clases CSS:
-        *   **Rojo (`.cell-highlight-error`)**: Para valores decimales incorrectos, diámetros erróneos o descuadre de carga total.
-        *   **Amarillo (`.cell-highlight-warning`)**: Para destacar celdas críticas vacías que debieron ser rellenadas.
+        *   **Rojo (`.cell-highlight-error`)**: Para valores decimales incorrectos, descuadre de cargas o diámetros erróneos.
+        *   **Amarillo (`.cell-highlight-warning`)**: Para destacar celdas críticas vacías obligatorias según el carguío del pozo.
