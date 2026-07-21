@@ -36,11 +36,20 @@ function AlertsSection({ filteredData, rawExcelRows }) {
     }
   };
 
-  const shouldHighlightCell = (key, value, errorType) => {
+  const shouldHighlightCell = (key, value, errorType, fullRow = {}) => {
     const cleanKey = String(key).toLowerCase().trim();
     const valStr = value !== null && value !== undefined ? String(value).trim() : '';
 
-    if (errorType === 'fondo') {
+    const getRowValue = (rowObj, possibleKeys) => {
+      for (const k of possibleKeys) {
+        if (rowObj[k] !== undefined && rowObj[k] !== null) {
+          return rowObj[k];
+        }
+      }
+      return null;
+    };
+
+    if (errorType === 'fondo' || errorType === 'total_mismatch') {
       if (
         cleanKey === 'carga fondo' || cleanKey === 'carga fondo (kg)' ||
         cleanKey === 'carga columna' || cleanKey === 'carga columna (kg)' ||
@@ -50,34 +59,63 @@ function AlertsSection({ filteredData, rawExcelRows }) {
         if (valStr === '' || isNaN(numVal) || numVal % 1 !== 0) {
           return 'cell-highlight-error';
         }
+        
+        // También resaltar si hay un descuadre
+        const cTotal = parseFloat(getRowValue(fullRow, ['Carga total (kg)', 'Carga Total', 'cargaTotal']) || 0);
+        const cFondo = parseFloat(getRowValue(fullRow, ['Carga fondo (kg)', 'Carga fondo', 'Carga Fondo', 'cargaFondo']) || 0);
+        const cColumna = parseFloat(getRowValue(fullRow, ['Carga columna (kg)', 'Carga columna', 'Carga Columna', 'cargaColumna']) || 0);
+        if (Math.abs(cTotal - (cFondo + cColumna)) > 0.1) {
+          return 'cell-highlight-error';
+        }
       }
     }
     
     if (errorType === 'empty') {
-      const isCargaKey = cleanKey === 'carga total' || cleanKey === 'carga total (kg)' || cleanKey === 'carga fondo' || cleanKey === 'carga fondo (kg)' || cleanKey === 'carga columna' || cleanKey === 'carga columna (kg)';
-      const isTipoKey = cleanKey === 'tipo fondo' || cleanKey === 'tipo' || cleanKey === 'tipo.' || cleanKey === 'tipo columna';
-      const isCamionKey = cleanKey === 'camión fondo' || cleanKey === 'camion' || cleanKey === 'camion.' || cleanKey === 'camión columna';
-      const isOperadorKey = cleanKey === 'operador';
+      const cTotal = parseFloat(getRowValue(fullRow, ['Carga total (kg)', 'Carga Total', 'cargaTotal']));
+      const cFondo = parseFloat(getRowValue(fullRow, ['Carga fondo (kg)', 'Carga fondo', 'Carga Fondo', 'cargaFondo']));
+      const cColumna = parseFloat(getRowValue(fullRow, ['Carga columna (kg)', 'Carga columna', 'Carga Columna', 'cargaColumna']));
+      
+      const hasFondoLoad = !isNaN(cFondo) && cFondo > 0;
+      const hasColumnaLoad = !isNaN(cColumna) && cColumna > 0;
 
-      if (valStr === '') {
-        if (isCargaKey || isTipoKey || isCamionKey || isOperadorKey) {
+      // 1. Carga vacía
+      const isCargaKey = cleanKey === 'carga total' || cleanKey === 'carga total (kg)' || cleanKey === 'carga fondo' || cleanKey === 'carga fondo (kg)' || cleanKey === 'carga columna' || cleanKey === 'carga columna (kg)';
+      if (isCargaKey && valStr === '') {
+        const allLoadsEmpty = (isNaN(cFondo) || cFondo === 0) && (isNaN(cColumna) || cColumna === 0);
+        const totalEmpty = isNaN(cTotal);
+        if (totalEmpty || allLoadsEmpty) {
           return 'cell-highlight-warning';
         }
+      }
+
+      // 2. Tipo vacío
+      const isTipoFondoKey = cleanKey === 'tipo fondo' || cleanKey === 'tipo';
+      const isTipoColumnaKey = cleanKey === 'tipo.' || cleanKey === 'tipo columna';
+      if (isTipoFondoKey && valStr === '' && hasFondoLoad) {
+        return 'cell-highlight-warning';
+      }
+      if (isTipoColumnaKey && valStr === '' && hasColumnaLoad) {
+        return 'cell-highlight-warning';
+      }
+
+      // 3. Camión vacío
+      const isCamionFondoKey = cleanKey === 'camión fondo' || cleanKey === 'camion';
+      const isCamionColumnaKey = cleanKey === 'camion.' || cleanKey === 'camión columna';
+      if (isCamionFondoKey && valStr === '' && hasFondoLoad) {
+        return 'cell-highlight-warning';
+      }
+      if (isCamionColumnaKey && valStr === '' && hasColumnaLoad) {
+        return 'cell-highlight-warning';
+      }
+
+      // 4. Operador vacío
+      if (cleanKey === 'operador' && valStr === '') {
+        return 'cell-highlight-warning';
       }
     }
     
     if (errorType === 'diameter') {
       if (cleanKey === 'diametro' || cleanKey === 'diámetro') {
-        return 'cell-highlight-error';
-      }
-    }
-
-    if (errorType === 'total_mismatch') {
-      if (
-        cleanKey === 'carga fondo' || cleanKey === 'carga fondo (kg)' ||
-        cleanKey === 'carga columna' || cleanKey === 'carga columna (kg)' ||
-        cleanKey === 'carga total' || cleanKey === 'carga total (kg)'
-      ) {
         return 'cell-highlight-error';
       }
     }
@@ -87,24 +125,29 @@ function AlertsSection({ filteredData, rawExcelRows }) {
 
   // Procesamos los pozos con anomalías
   const alertsData = useMemo(() => {
-    const fondoIssues = []; // Decimales o vacíos en Carga
-    const emptyFieldIssues = []; // Celdas vacías en Carga, Tipo, Camión u Operador
+    const fondoIssues = []; // Decimales, vacíos o descuadre en Cargas
+    const emptyFieldIssues = []; // Celdas vacías críticas (Trazabilidad mandatoria)
     const diameterIssues = []; // Diámetros no en pulgadas
-    const totalMismatchIssues = []; // Suma de cargas no coincide con carga total
+    const totalMismatchIssues = []; // Ya no se usa por separado, pero lo definimos vacío por compatibilidad si es necesario
     const uniqueExplosives = new Set();
 
     filteredData.forEach(row => {
-      // 1. Carga decimal o vacía (suma fondo+columna o carga total)
+      // 1. Carga decimal, vacía o con descuadre (suma fondo+columna o carga total)
       const hasFondoColumna = (row.cargaFondo !== null && row.cargaFondo !== undefined) || (row.cargaColumna !== null && row.cargaColumna !== undefined);
       const sumFondoColumna = (row.cargaFondo || 0) + (row.cargaColumna || 0);
       const isSumDecimal = hasFondoColumna && (sumFondoColumna % 1 !== 0);
       const isSumEmpty = !hasFondoColumna;
       const isTotalEmpty = row.cargaTotal === null || row.cargaTotal === undefined;
       const isTotalDecimal = !isTotalEmpty && (row.cargaTotal % 1 !== 0);
+      
+      // Descuadre entre suma y total (si hay total y hay cargas)
+      const isMismatch = (row.cargaTotal !== null && row.cargaTotal !== undefined) && Math.abs(row.cargaTotal - sumFondoColumna) > 0.1;
 
-      if (isSumDecimal || isSumEmpty || isTotalEmpty || isTotalDecimal) {
+      if (isSumDecimal || isSumEmpty || isTotalEmpty || isTotalDecimal || isMismatch) {
         let reason = '';
-        if (isSumEmpty && isTotalEmpty) {
+        if (isMismatch) {
+          reason = `Descuadre: Suma ${sumFondoColumna} vs Total ${row.cargaTotal}`;
+        } else if (isSumEmpty && isTotalEmpty) {
           reason = 'Vacío';
         } else if (isSumDecimal || isTotalDecimal) {
           const parts = [];
@@ -124,21 +167,46 @@ function AlertsSection({ filteredData, rawExcelRows }) {
         });
       }
 
-      // 2. Celdas vacías en columnas mandatorias
+      // 2. Celdas vacías en columnas mandatorias (Trazabilidad)
       const missingFields = [];
-      if (row.cargaTotal === null || row.cargaTotal === undefined) {
-        missingFields.push('Carga Total');
+      
+      // Falta carga total, carga fondo y carga columna simultáneamente
+      const isAllCargasEmpty = isTotalEmpty && isSumEmpty;
+      if (isAllCargasEmpty) {
+        missingFields.push('Cargas (Vacío Total)');
+      } else {
+        // Validación cruzada de campos mandatorios:
+        // Si hay carga fondo, tipoFondo y camionFondo son mandatorios
+        const hasFondoLoad = row.cargaFondo !== null && row.cargaFondo > 0;
+        if (hasFondoLoad) {
+          if (!row.tipoFondo || String(row.tipoFondo).trim() === '') missingFields.push('Tipo Fondo');
+          if (!row.camionFondo || String(row.camionFondo).trim() === '') missingFields.push('Camión Fondo');
+        }
+        
+        // Si hay carga columna, tipoColumna y camionColumna son mandatorios
+        const hasColumnaLoad = row.cargaColumna !== null && row.cargaColumna > 0;
+        if (hasColumnaLoad) {
+          if (!row.tipoColumna || String(row.tipoColumna).trim() === '') missingFields.push('Tipo Columna');
+          if (!row.camionColumna || String(row.camionColumna).trim() === '') missingFields.push('Camión Columna');
+        }
       }
-      if (row.cargaFondo === null && row.cargaColumna === null) {
-        missingFields.push('Cargas (Fondo y Columna)');
-      }
-      if (row.tipoFondo === null && row.tipoColumna === null) {
+
+      // Tipo de explosivo vacío a la vez (si no se validó arriba por no haber cargas)
+      const isAllTiposEmpty = (!row.tipoFondo || String(row.tipoFondo).trim() === '') &&
+                              (!row.tipoColumna || String(row.tipoColumna).trim() === '');
+      if (isAllTiposEmpty && !missingFields.includes('Tipo Fondo') && !missingFields.includes('Tipo Columna')) {
         missingFields.push('Tipo Explosivo');
       }
-      if (row.camionFondo === null && row.camionColumna === null) {
+
+      // Camión vacío a la vez (si no se validó arriba por no haber cargas)
+      const isAllCamionesEmpty = (!row.camionFondo || String(row.camionFondo).trim() === '') &&
+                                 (!row.camionColumna || String(row.camionColumna).trim() === '');
+      if (isAllCamionesEmpty && !missingFields.includes('Camión Fondo') && !missingFields.includes('Camión Columna')) {
         missingFields.push('Camión');
       }
-      if (row.operador === null || row.operador.trim() === '') {
+
+      // Operador
+      if (!row.operador || String(row.operador).trim() === '') {
         missingFields.push('Operador');
       }
 
@@ -155,17 +223,6 @@ function AlertsSection({ filteredData, rawExcelRows }) {
           pozo: row.pozo,
           diametro: row.diametro || '(vacío)'
         });
-      }
-
-      // 4. Inconsistencia en Carga Total (Suma no coincide)
-      if (row.cargaTotal !== null && row.cargaTotal !== undefined) {
-        const expectedTotal = (row.cargaFondo || 0) + (row.cargaColumna || 0);
-        if (Math.abs(row.cargaTotal - expectedTotal) > 0.1) {
-          totalMismatchIssues.push({
-            pozo: row.pozo,
-            reason: `Suma: ${expectedTotal} kg vs Total: ${row.cargaTotal} kg`
-          });
-        }
       }
 
       // Coleccionar tipos de explosivo únicos
@@ -190,7 +247,6 @@ function AlertsSection({ filteredData, rawExcelRows }) {
     alertsData.fondoIssues.length > 0 || 
     alertsData.emptyFieldIssues.length > 0 || 
     alertsData.diameterIssues.length > 0 ||
-    alertsData.totalMismatchIssues.length > 0 ||
     alertsData.hasMultipleExplosives;
 
   if (!hasAnyAlerts) {
@@ -210,7 +266,6 @@ function AlertsSection({ filteredData, rawExcelRows }) {
     alertsData.fondoIssues.length + 
     alertsData.emptyFieldIssues.length + 
     alertsData.diameterIssues.length + 
-    alertsData.totalMismatchIssues.length +
     (alertsData.hasMultipleExplosives ? 1 : 0);
 
   return (
@@ -272,17 +327,17 @@ function AlertsSection({ filteredData, rawExcelRows }) {
           )}
         </div>
 
-        {/* Card 2: Campos Vacíos Críticos */}
+        {/* Card 2: Trazabilidad Mandatoria */}
         <div className="alert-card-item warning-alert">
           <div className="alert-card-title">
-            <span>Celdas Vacías en Columnas Críticas (Carga, Tipo, Camión u Operador)</span>
+            <span>Trazabilidad Mandatoria: Campos Vacíos según Carga Activa</span>
             <span className={`alert-card-badge ${alertsData.emptyFieldIssues.length > 0 ? 'warning' : 'success'}`}>
               {alertsData.emptyFieldIssues.length} pozos
             </span>
           </div>
           
           {alertsData.emptyFieldIssues.length === 0 ? (
-            <span className="alert-card-empty-msg">✓ No hay pozos con celdas críticas vacías.</span>
+            <span className="alert-card-empty-msg">✓ Todos los pozos activos tienen tipo, camión y operador correspondientes.</span>
           ) : (
             <div className="alert-card-pozos-list">
               {alertsData.emptyFieldIssues.map((issue, idx) => (
@@ -332,38 +387,6 @@ function AlertsSection({ filteredData, rawExcelRows }) {
             </div>
           )}
         </div>
-
-        {/* Card 4: Inconsistencia en Carga Total */}
-        <div className="alert-card-item danger-alert" style={{ borderLeft: '4px solid #f97316' }}>
-          <div className="alert-card-title">
-            <span>Inconsistencia: Carga Total vs. Suma de Cargas</span>
-            <span className={`alert-card-badge ${alertsData.totalMismatchIssues.length > 0 ? 'danger' : 'success'}`} style={{
-              background: alertsData.totalMismatchIssues.length > 0 ? 'rgba(249, 115, 22, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-              color: alertsData.totalMismatchIssues.length > 0 ? '#f97316' : '#10b981'
-            }}>
-              {alertsData.totalMismatchIssues.length} pozos
-            </span>
-          </div>
-          
-          {alertsData.totalMismatchIssues.length === 0 ? (
-            <span className="alert-card-empty-msg">✓ Todos los pozos coinciden la carga total con la suma de fondo y columna.</span>
-          ) : (
-            <div className="alert-card-pozos-list">
-              {alertsData.totalMismatchIssues.map((issue, idx) => (
-                <span 
-                  key={idx} 
-                  className="alert-badge-pozo clickable-alert-badge" 
-                  title={`Haz clic para inspeccionar fila. ${issue.reason}`}
-                  onClick={() => handleInspectPozo(issue.pozo, 'total_mismatch')}
-                  style={{ borderLeft: '3px solid #f97316' }}
-                >
-                  P-{issue.pozo}
-                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>({issue.reason.split(' vs ')[0]})</span>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Modal Inspector de Fila Original */}
@@ -398,7 +421,7 @@ function AlertsSection({ filteredData, rawExcelRows }) {
                   <tbody>
                     <tr>
                       {Object.entries(inspectingPozo.row).map(([key, val]) => {
-                        const highlightClass = shouldHighlightCell(key, val, inspectingPozo.errorType);
+                        const highlightClass = shouldHighlightCell(key, val, inspectingPozo.errorType, inspectingPozo.row);
                         return (
                           <td key={key} className={highlightClass}>
                             {val === null || val === undefined || String(val).trim() === '' ? (

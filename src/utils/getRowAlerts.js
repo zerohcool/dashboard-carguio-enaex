@@ -21,39 +21,52 @@ export const isNotPureInches = (diamStr) => {
 export const getRowAlerts = (row) => {
   const alerts = [];
   
-  // 1. Decimales o vacío en carga
+  // 1. Carga con decimales, vacía o con descuadre
   const hasFondoColumna = (row.cargaFondo !== null && row.cargaFondo !== undefined) || (row.cargaColumna !== null && row.cargaColumna !== undefined);
   const sumFondoColumna = (row.cargaFondo || 0) + (row.cargaColumna || 0);
   const isSumDecimal = hasFondoColumna && (sumFondoColumna % 1 !== 0);
   const isSumEmpty = !hasFondoColumna;
   const isTotalEmpty = row.cargaTotal === null || row.cargaTotal === undefined;
   const isTotalDecimal = !isTotalEmpty && (row.cargaTotal % 1 !== 0);
+  
+  // Descuadre entre suma y total (si hay total y hay cargas)
+  const isMismatch = (row.cargaTotal !== null && row.cargaTotal !== undefined) && Math.abs(row.cargaTotal - sumFondoColumna) > 0.1;
 
-  if (isSumDecimal || isSumEmpty || isTotalEmpty || isTotalDecimal) {
-    alerts.push('Carga con decimales/vacía');
+  if (isSumDecimal || isSumEmpty || isTotalEmpty || isTotalDecimal || isMismatch) {
+    alerts.push('Carga con decimales/vacía/descuadre');
   }
   
-  // 2. Celdas vacías críticas
-  const isCargaEmpty = (row.cargaTotal === null || row.cargaTotal === undefined) || (row.cargaFondo === null && row.cargaColumna === null);
-  const isTipoEmpty = row.tipoFondo === null && row.tipoColumna === null;
-  const isCamionEmpty = row.camionFondo === null && row.camionColumna === null;
-  const isOperadorEmpty = row.operador === null || row.operador.trim() === '';
+  // 2. Celdas vacías críticas (Trazabilidad mandatoria)
+  const isAllCargasEmpty = isTotalEmpty && isSumEmpty;
+  
+  const isAllTiposEmpty = (row.tipoFondo === null || row.tipoFondo === undefined || String(row.tipoFondo).trim() === '') &&
+                          (row.tipoColumna === null || row.tipoColumna === undefined || String(row.tipoColumna).trim() === '');
+                          
+  const isAllCamionesEmpty = (row.camionFondo === null || row.camionFondo === undefined || String(row.camionFondo).trim() === '') &&
+                             (row.camionColumna === null || row.camionColumna === undefined || String(row.camionColumna).trim() === '');
+                             
+  const isOperadorEmpty = row.operador === null || row.operador === undefined || String(row.operador).trim() === '';
 
-  if (isCargaEmpty || isTipoEmpty || isCamionEmpty || isOperadorEmpty) {
+  // Validación Cruzada:
+  const hasFondoLoad = row.cargaFondo !== null && row.cargaFondo > 0;
+  const missingFondoTrazabilidad = hasFondoLoad && (
+    !row.tipoFondo || String(row.tipoFondo).trim() === '' ||
+    !row.camionFondo || String(row.camionFondo).trim() === ''
+  );
+  
+  const hasColumnaLoad = row.cargaColumna !== null && row.cargaColumna > 0;
+  const missingColumnaTrazabilidad = hasColumnaLoad && (
+    !row.tipoColumna || String(row.tipoColumna).trim() === '' ||
+    !row.camionColumna || String(row.camionColumna).trim() === ''
+  );
+
+  if (isAllCargasEmpty || isAllTiposEmpty || isAllCamionesEmpty || isOperadorEmpty || missingFondoTrazabilidad || missingColumnaTrazabilidad) {
     alerts.push('Celdas vacías críticas');
   }
 
   // 3. Formato de diámetro no en pulgadas
   if (isNotPureInches(row.diametro)) {
     alerts.push('Diámetro en mm/err');
-  }
-  
-  // 4. Inconsistencia en Carga Total (Suma de cargas no coincide)
-  if (row.cargaTotal !== null && row.cargaTotal !== undefined) {
-    const expectedTotal = (row.cargaFondo || 0) + (row.cargaColumna || 0);
-    if (Math.abs(row.cargaTotal - expectedTotal) > 0.1) {
-      alerts.push('Inconsistencia en Carga Total');
-    }
   }
   
   return alerts;
