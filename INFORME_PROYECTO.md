@@ -40,7 +40,9 @@ Representa la cantidad de masa de producto (explosivo) que debería entrar físi
 *   **Fórmulas Utilizadas**:
     1.  **Altura de Carga ($H$)**: Es la longitud del pozo ocupada por explosivos. Se calcula restando el taco de la longitud real:
         $$H = \text{Longitud Real (m)} - \text{Taco (m)}$$
-    2.  **Conversión de Diámetro ($D_{in}$)**: El diámetro del pozo ingresado en pulgadas (incluso si está escrito como fracción, ejemplo: `"6 1/2"`) se convierte a un número decimal (`6.5`).
+    2.  **Conversión de Diámetro ($D_{in}$)**: El diámetro del pozo ingresado en pulgadas (incluso si está escrito como fracción, ejemplo: `"6 1/2"`) se convierte a un número decimal (`6.5`). 
+        *   **Tratamiento de Errores y Limpieza**: Para robustecer el cálculo, se eliminan todos los caracteres que no sean dígitos, comas `,`, puntos `.`, barras `/` o comillas `"`.
+        *   **Conversión mm a Pulgadas**: Si el diámetro se ingresó en milímetros (valor numérico resultante > 20), el sistema lo convierte automáticamente a pulgadas dividiendo por `25.4` antes de calcular el volumen.
     3.  **Densidad del Producto ($\rho$)**: Se realiza una búsqueda interna de la densidad del producto según su tipo in situ:
         *   *Quantex 70 / Q70 / UP70 / San G*: `1.20 g/cc`
         *   *Quantex 80 / Q80 / UP80*: `1.25 g/cc`
@@ -70,15 +72,16 @@ La aplicación audita cada fila de la planilla importada en tiempo real buscando
 
 | Alerta de Calidad | Criterio de Búsqueda | Consecuencia / Riesgo |
 | :--- | :--- | :--- |
-| **Carga de Fondo Decimal o Vacía** | La carga de fondo es nula o tiene decimales (ej: `125.5 kg` en vez de un entero). | Indica error de tipeo manual del operador o falta de registro. |
-| **Celdas Vacías Críticas** | Faltan datos obligatorios en columnas de Carga (Fondo/Columna), Tipo de Explosivo, N° de Camión u Operador. | Omisión de información clave para la trazabilidad de la tronadura. |
-| **Diámetro en mm o ERR** | El texto en el diámetro contiene las siglas `mm`, `err`, o números superiores a 20 (ej: `165`, indicando formato métrico). | Error de formato; los diámetros deben estar expresados en pulgadas. |
+| **Cargas con Decimales o Vacías** | Se gatilla si la suma de `Carga Fondo + Carga Columna` tiene decimales o está vacía, o si la columna `Carga Total` está vacía o tiene decimales. | Indica error de tipeo manual del operador o falta de registro de pesos de carguío enteros. |
+| **Celdas Vacías Críticas** | Faltan datos obligatorios en columnas de Carga Total, o Carga Fondo y Carga Columna a la vez (ambas celdas vacías), Tipo de Explosivo, Camión u Operador. | Omisión de información clave para la trazabilidad de la tronadura. |
+| **Diámetro en mm o ERR** | El texto en el diámetro contiene las siglas `mm`, `err`, o números superiores a 20 (ej: `165`, indicando formato métrico). | Error de formato; los diámetros deben estar expresados en pulgadas. **El pozo no se oculta de las tablas**, sino que se limpia, convierte a pulgadas, y se resalta. |
 | **Inconsistencia de Carga Total** | La columna `Carga Total` declarada difiere de la suma de `Carga Fondo + Carga Columna` por más de `0.1 kg`. | Error en sumas del reporte o en el procesamiento del carguío. |
 
 ### Cómo se Señalan y Visualizan
 1.  **Dashboard General**: Muestra en la parte superior un panel interactivo con la cuenta de anomalías.
 2.  **Tarjetas de Pozos**: Los pozos con problemas se agrupan en insignias interactivas (badges) de color rojo (críticos) o amarillo (advertencias).
-3.  **Inspector de Fila Original**: 
+3.  **Tabla de Desviaciones**: Los pozos que presentan error de formato en el diámetro no son omitidos; se muestran calculados y **resaltan la fila completa con un fondo rojo translúcido** (`rgba(239, 68, 68, 0.08)`) y un icono de advertencia.
+4.  **Inspector de Fila Original**: 
     *   Al hacer clic en el número de pozo o en su tarjeta de alerta, se abre un **Modal Inspector**.
     *   Este modal renderiza la **fila completa del Excel original**, en su orden exacto de columnas.
     *   El sistema resalta la celda específica con el error utilizando clases CSS:
