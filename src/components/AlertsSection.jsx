@@ -50,22 +50,50 @@ function AlertsSection({ filteredData, rawExcelRows }) {
     };
 
     if (errorType === 'fondo' || errorType === 'total_mismatch') {
-      if (
-        cleanKey === 'carga fondo' || cleanKey === 'carga fondo (kg)' ||
-        cleanKey === 'carga columna' || cleanKey === 'carga columna (kg)' ||
-        cleanKey === 'carga total' || cleanKey === 'carga total (kg)'
-      ) {
-        const numVal = parseFloat(valStr);
-        if (valStr === '' || isNaN(numVal) || numVal % 1 !== 0) {
+      const isTotalKey = cleanKey === 'carga total' || cleanKey === 'carga total (kg)';
+      const isFondoKey = cleanKey === 'carga fondo' || cleanKey === 'carga fondo (kg)';
+      const isColumnaKey = cleanKey === 'carga columna' || cleanKey === 'carga columna (kg)';
+
+      if (isTotalKey || isFondoKey || isColumnaKey) {
+        const cTotalRaw = getRowValue(fullRow, ['Carga total (kg)', 'Carga Total', 'cargaTotal']);
+        const cFondoRaw = getRowValue(fullRow, ['Carga fondo (kg)', 'Carga fondo', 'Carga Fondo', 'cargaFondo']);
+        const cColumnaRaw = getRowValue(fullRow, ['Carga columna (kg)', 'Carga columna', 'Carga Columna', 'cargaColumna']);
+
+        const cTotal = cTotalRaw !== null && cTotalRaw !== undefined && cTotalRaw !== '' ? parseFloat(cTotalRaw) : null;
+        const cFondo = cFondoRaw !== null && cFondoRaw !== undefined && cFondoRaw !== '' ? parseFloat(cFondoRaw) : null;
+        const cColumna = cColumnaRaw !== null && cColumnaRaw !== undefined && cColumnaRaw !== '' ? parseFloat(cColumnaRaw) : null;
+
+        const sumFondoColumna = (cFondo || 0) + (cColumna || 0);
+        const hasFondoColumna = cFondo !== null || cColumna !== null;
+        
+        const isMismatch = cTotal !== null && Math.abs(cTotal - sumFondoColumna) > 0.1;
+
+        // Si hay descuadre, todas las celdas involucradas se pintan de rojo
+        if (isMismatch) {
           return 'cell-highlight-error';
         }
-        
-        // También resaltar si hay un descuadre
-        const cTotal = parseFloat(getRowValue(fullRow, ['Carga total (kg)', 'Carga Total', 'cargaTotal']) || 0);
-        const cFondo = parseFloat(getRowValue(fullRow, ['Carga fondo (kg)', 'Carga fondo', 'Carga Fondo', 'cargaFondo']) || 0);
-        const cColumna = parseFloat(getRowValue(fullRow, ['Carga columna (kg)', 'Carga columna', 'Carga Columna', 'cargaColumna']) || 0);
-        if (Math.abs(cTotal - (cFondo + cColumna)) > 0.1) {
-          return 'cell-highlight-error';
+
+        // Si no hay descuadre, evaluamos cada celda individualmente:
+        if (isTotalKey) {
+          if (cTotal === null || isNaN(cTotal) || cTotal % 1 !== 0) {
+            return 'cell-highlight-error';
+          }
+        }
+
+        if (isFondoKey) {
+          const isDecimal = cFondo !== null && !isNaN(cFondo) && cFondo % 1 !== 0;
+          const bothEmpty = !hasFondoColumna;
+          if (isDecimal || bothEmpty) {
+            return 'cell-highlight-error';
+          }
+        }
+
+        if (isColumnaKey) {
+          const isDecimal = cColumna !== null && !isNaN(cColumna) && cColumna % 1 !== 0;
+          const bothEmpty = !hasFondoColumna;
+          if (isDecimal || bothEmpty) {
+            return 'cell-highlight-error';
+          }
         }
       }
     }
