@@ -41,21 +41,28 @@ function AlertsSection({ filteredData, rawExcelRows }) {
     const valStr = value !== null && value !== undefined ? String(value).trim() : '';
 
     if (errorType === 'fondo') {
-      if (cleanKey === 'carga fondo' || cleanKey === 'carga fondo (kg)') {
-        return 'cell-highlight-error';
+      if (
+        cleanKey === 'carga fondo' || cleanKey === 'carga fondo (kg)' ||
+        cleanKey === 'carga columna' || cleanKey === 'carga columna (kg)' ||
+        cleanKey === 'carga total' || cleanKey === 'carga total (kg)'
+      ) {
+        const numVal = parseFloat(valStr);
+        if (valStr === '' || isNaN(numVal) || numVal % 1 !== 0) {
+          return 'cell-highlight-error';
+        }
       }
     }
     
     if (errorType === 'empty') {
-      const criticalKeys = [
-        'carga fondo', 'carga fondo (kg)', 
-        'carga columna', 'carga columna (kg)',
-        'tipo fondo', 'tipo fondo (kg)', 'tipo', 'tipo.',
-        'camión fondo', 'camión columna', 'camion', 'camion.',
-        'operador'
-      ];
-      if (criticalKeys.includes(cleanKey) && valStr === '') {
-        return 'cell-highlight-warning';
+      const isCargaKey = cleanKey === 'carga total' || cleanKey === 'carga total (kg)' || cleanKey === 'carga fondo' || cleanKey === 'carga fondo (kg)' || cleanKey === 'carga columna' || cleanKey === 'carga columna (kg)';
+      const isTipoKey = cleanKey === 'tipo fondo' || cleanKey === 'tipo' || cleanKey === 'tipo.' || cleanKey === 'tipo columna';
+      const isCamionKey = cleanKey === 'camión fondo' || cleanKey === 'camion' || cleanKey === 'camion.' || cleanKey === 'camión columna';
+      const isOperadorKey = cleanKey === 'operador';
+
+      if (valStr === '') {
+        if (isCargaKey || isTipoKey || isCamionKey || isOperadorKey) {
+          return 'cell-highlight-warning';
+        }
       }
     }
     
@@ -80,32 +87,53 @@ function AlertsSection({ filteredData, rawExcelRows }) {
 
   // Procesamos los pozos con anomalías
   const alertsData = useMemo(() => {
-    const fondoIssues = []; // Decimales o vacíos en Carga Fondo
+    const fondoIssues = []; // Decimales o vacíos en Carga
     const emptyFieldIssues = []; // Celdas vacías en Carga, Tipo, Camión u Operador
     const diameterIssues = []; // Diámetros no en pulgadas
     const totalMismatchIssues = []; // Suma de cargas no coincide con carga total
     const uniqueExplosives = new Set();
 
     filteredData.forEach(row => {
-      // 1. Carga de fondo decimal o vacía
-      const isFondoDecimal = row.cargaFondo !== null && row.cargaFondo % 1 !== 0;
-      const isFondoEmpty = row.cargaFondo === null;
-      
-      if (isFondoDecimal || isFondoEmpty) {
+      // 1. Carga decimal o vacía (suma fondo+columna o carga total)
+      const hasFondoColumna = (row.cargaFondo !== null && row.cargaFondo !== undefined) || (row.cargaColumna !== null && row.cargaColumna !== undefined);
+      const sumFondoColumna = (row.cargaFondo || 0) + (row.cargaColumna || 0);
+      const isSumDecimal = hasFondoColumna && (sumFondoColumna % 1 !== 0);
+      const isSumEmpty = !hasFondoColumna;
+      const isTotalEmpty = row.cargaTotal === null || row.cargaTotal === undefined;
+      const isTotalDecimal = !isTotalEmpty && (row.cargaTotal % 1 !== 0);
+
+      if (isSumDecimal || isSumEmpty || isTotalEmpty || isTotalDecimal) {
+        let reason = '';
+        if (isSumEmpty && isTotalEmpty) {
+          reason = 'Vacío';
+        } else if (isSumDecimal || isTotalDecimal) {
+          const parts = [];
+          if (isSumDecimal) parts.push(`Suma: ${sumFondoColumna}`);
+          if (isTotalDecimal) parts.push(`Total: ${row.cargaTotal}`);
+          reason = `Decimal (${parts.join(', ')})`;
+        } else if (isTotalEmpty) {
+          reason = 'Total Vacío';
+        } else {
+          reason = 'Cargas Vacías';
+        }
+
         fondoIssues.push({
           pozo: row.pozo,
-          reason: isFondoEmpty ? 'Vacío' : `Decimal (${row.cargaFondo} kg)`,
-          type: isFondoEmpty ? 'empty' : 'decimal'
+          reason,
+          type: (isSumEmpty || isTotalEmpty) ? 'empty' : 'decimal'
         });
       }
 
-      // 2. Celdas vacías en carga, tipo, camion u operador
+      // 2. Celdas vacías en columnas mandatorias
       const missingFields = [];
+      if (row.cargaTotal === null || row.cargaTotal === undefined) {
+        missingFields.push('Carga Total');
+      }
       if (row.cargaFondo === null && row.cargaColumna === null) {
-        missingFields.push('Carga');
+        missingFields.push('Cargas (Fondo y Columna)');
       }
       if (row.tipoFondo === null && row.tipoColumna === null) {
-        missingFields.push('Tipo');
+        missingFields.push('Tipo Explosivo');
       }
       if (row.camionFondo === null && row.camionColumna === null) {
         missingFields.push('Camión');
@@ -213,18 +241,18 @@ function AlertsSection({ filteredData, rawExcelRows }) {
       )}
 
       <div className="alerts-panel-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
-        {/* Card 1: Carga de Fondo Decimal o Vacía */}
+        {/* Card 1: Carga Decimal o Vacía */}
         <div className="alert-card-item danger-alert">
           <div className="alert-card-title">
-            <span>Carga de Fondo: Valores con Decimales o Vacíos</span>
+            <span>Cargas: Valores con Decimales o Vacíos</span>
             <span className={`alert-card-badge ${alertsData.fondoIssues.length > 0 ? 'danger' : 'success'}`}>
               {alertsData.fondoIssues.length} pozos
             </span>
           </div>
           
           {alertsData.fondoIssues.length === 0 ? (
-            <span className="alert-card-empty-msg">✓ Todos los pozos tienen carga de fondo entera y registrada.</span>
-          ) :           (
+            <span className="alert-card-empty-msg">✓ Todos los pozos tienen cargas enteras y registradas.</span>
+          ) : (
              <div className="alert-card-pozos-list">
               {alertsData.fondoIssues.map((issue, idx) => (
                 <span 

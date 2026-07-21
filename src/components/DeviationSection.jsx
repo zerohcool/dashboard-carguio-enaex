@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Scale, AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { isNotPureInches } from '../utils/getRowAlerts';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -66,16 +67,15 @@ export const getProductTolerance = (productName) => {
 // Función para parsear el diámetro de pulgadas o milímetros a un número flotante en pulgadas
 export const parseDiameterToInches = (diamStr) => {
   if (!diamStr) return 0;
-  let cleanStr = String(diamStr).toLowerCase().replace(/"/g, '').trim();
   
-  // Detectar si contiene explícitamente "mm" o "m.m"
-  const isMmExplicit = cleanStr.includes('mm') || cleanStr.includes('m.m');
-  cleanStr = cleanStr.replace(/mm|m\.m/g, '').trim();
+  // Eliminar cualquier carácter que no sea número, coma, punto, barra, comillas o espacios
+  let cleanStr = String(diamStr).replace(/[^0-9,\./"\s]/g, '').replace(/,/g, '.').replace(/"/g, '').trim();
+  if (!cleanStr) return 0;
   
   let inches = 0;
   
   if (cleanStr.includes(' ')) {
-    const parts = cleanStr.split(' ');
+    const parts = cleanStr.split(/\s+/);
     const whole = parseFloat(parts[0]);
     if (parts[1] && parts[1].includes('/')) {
       const fracParts = parts[1].split('/');
@@ -94,12 +94,11 @@ export const parseDiameterToInches = (diamStr) => {
     inches = parseFloat(cleanStr);
   }
   
-  if (isNaN(inches)) return 0;
+  if (isNaN(inches) || inches <= 0) return 0;
   
-  // Heurística: Si tiene "mm" explícito, o si el valor es mayor a 20
-  // (ningún pozo de tronadura mide >20 pulgadas, pero sí 165mm, 251mm, etc.)
-  if (isMmExplicit || inches > 20) {
-    return inches / 25.4; // Convertir mm a pulgadas
+  // Si el valor numérico limpio es mayor a 20 (indica que está en milímetros), lo convertimos a pulgadas dividiendo por 25.4
+  if (inches > 20) {
+    return inches / 25.4;
   }
   
   return inches;
@@ -139,45 +138,49 @@ function DeviationSection({ filteredData, rawExcelRows, theme }) {
       if (
         row.longitudReal === null || 
         row.taco === null || 
-        !row.diametro || 
         row.cargaTotal === null
       ) {
         return null;
       }
       
       const dInches = parseDiameterToInches(row.diametro);
-      if (dInches <= 0) return null;
+      const isMmOrErr = isNotPureInches(row.diametro);
+      const hasDiameterError = isMmOrErr || dInches <= 0 || !row.diametro;
       
       const density = getProductDensity(row.tipoFondo);
-      if (density <= 0) return null;
-      
       const height = row.longitudReal - row.taco;
-      if (height <= 0) return null;
       
-      // Fórmula del volumen de cilindro en base a pulgadas y metros:
-      // Carga Teórica (kg) = Altura Carga (m) * 0.5067 * Diámetro² (in) * Densidad (g/cc)
-      const cargaTeorica = height * 0.50671 * (dInches * dInches) * density;
-      const desviacionKg = row.cargaTotal - cargaTeorica;
-      const desviacionPct = (desviacionKg / cargaTeorica) * 100;
+      let cargaTeorica = 0;
+      let desviacionKg = 0;
+      let desviacionPct = 0;
+      let isConforme = true;
+      const tolerance = getProductTolerance(row.tipoFondo) * 100;
       
-      const tolerance = getProductTolerance(row.tipoFondo);
-      const isConforme = Math.abs(desviacionPct) <= (tolerance * 100);
+      if (dInches > 0 && density > 0 && height > 0) {
+        cargaTeorica = height * 0.50671 * (dInches * dInches) * density;
+        desviacionKg = row.cargaTotal - cargaTeorica;
+        desviacionPct = (desviacionKg / cargaTeorica) * 100;
+        isConforme = Math.abs(desviacionPct) <= tolerance;
+      } else {
+        isConforme = false;
+      }
       
       return {
         pozo: row.pozo,
         poligono: row.poligono,
-        diametro: row.diametro,
+        diametro: row.diametro || '(vacío)',
         longitudReal: row.longitudReal,
         taco: row.taco,
         alturaCarga: height,
-        explosivo: row.tipoFondo,
+        explosivo: row.tipoFondo || '(vacío)',
         densidad: density,
         cargaReal: row.cargaTotal,
         cargaTeorica: parseFloat(cargaTeorica.toFixed(1)),
         desviacionKg: parseFloat(desviacionKg.toFixed(1)),
         desviacionPct: parseFloat(desviacionPct.toFixed(1)),
-        tolerance: tolerance * 100,
-        isConforme
+        tolerance: tolerance,
+        isConforme,
+        hasDiameterError
       };
     }).filter(Boolean);
   }, [filteredData]);
@@ -402,7 +405,7 @@ function DeviationSection({ filteredData, rawExcelRows, theme }) {
                 : 0;
 
               return (
-                <tr key={idx}>
+                <tr key={idx} style={item.hasDiameterError ? { backgroundColor: 'rgba(239, 68, 68, 0.08)' } : {}}>
                   <td 
                     className="pozo-cell-clickable" 
                     onClick={() => handleInspectPozo(item.pozo)}
@@ -418,29 +421,32 @@ function DeviationSection({ filteredData, rawExcelRows, theme }) {
                       <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(vacío)</span>
                     )}
                   </td>
-                  <td className="tooltip-container" style={{ fontWeight: '500' }}>
-                    {item.diametro}
+                  <td className="tooltip-container" style={{ fontWeight: '500', color: item.hasDiameterError ? 'var(--danger)' : 'inherit' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      {item.hasDiameterError && <AlertTriangle size={12} style={{ color: 'var(--danger)', flexShrink: 0 }} />}
+                      <span>{item.diametro}</span>
+                    </div>
                     {subidaLineal > 0 && (
                       <span className="tooltip-text">{`Subida lineal ${subidaLineal.toFixed(1)} kg x mt`}</span>
                     )}
                   </td>
-                <td>{item.longitudReal !== null ? `${item.longitudReal.toFixed(2)} m` : '-'}</td>
-                <td>{item.taco !== null ? `${item.taco.toFixed(2)} m` : '-'}</td>
-                <td>{item.alturaCarga.toFixed(2)} m</td>
-                <td style={{ fontWeight: '600' }}>
-                  {item.cargaReal.toLocaleString('es-CL')} kg
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', fontWeight: '400', marginTop: '0.1rem' }}>
-                    {item.explosivo} ({item.densidad} g/cc)
-                  </span>
-                </td>
-                <td>{item.cargaTeorica.toLocaleString('es-CL')} kg</td>
-                <td style={{ color: item.desviacionKg > 0 ? 'var(--danger)' : 'var(--info)' }}>
-                  {item.desviacionKg > 0 ? '+' : ''}{item.desviacionKg.toLocaleString('es-CL')} kg
-                </td>
-                <td style={{ color: item.isConforme ? 'var(--success)' : 'var(--danger)', fontWeight: '600' }}>
-                  {item.desviacionPct > 0 ? '+' : ''}{item.desviacionPct.toFixed(1)}%
-                </td>
-                <td style={{ color: 'var(--text-secondary)' }}>±{item.tolerance}%</td>
+                  <td>{item.longitudReal !== null ? `${item.longitudReal.toFixed(2)} m` : '-'}</td>
+                  <td>{item.taco !== null ? `${item.taco.toFixed(2)} m` : '-'}</td>
+                  <td>{item.alturaCarga.toFixed(2)} m</td>
+                  <td style={{ fontWeight: '600' }}>
+                    {item.cargaReal.toLocaleString('es-CL')} kg
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'block', fontWeight: '400', marginTop: '0.1rem' }}>
+                      {item.explosivo} ({item.densidad} g/cc)
+                    </span>
+                  </td>
+                  <td>{item.cargaTeorica.toLocaleString('es-CL')} kg</td>
+                  <td style={{ color: item.desviacionKg > 0 ? 'var(--danger)' : 'var(--info)' }}>
+                    {item.desviacionKg > 0 ? '+' : ''}{item.desviacionKg.toLocaleString('es-CL')} kg
+                  </td>
+                  <td style={{ color: item.isConforme ? 'var(--success)' : 'var(--danger)', fontWeight: '600' }}>
+                    {item.desviacionPct > 0 ? '+' : ''}{item.desviacionPct.toFixed(1)}%
+                  </td>
+                  <td style={{ color: 'var(--text-secondary)' }}>±{item.tolerance}%</td>
                 <td>
                   {item.isConforme ? (
                     <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
