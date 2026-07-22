@@ -1017,7 +1017,7 @@ function App() {
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
           <div>
-            <strong>razecl web design Ⓡ</strong>
+            <span className="btn-shine">razecl web design Ⓡ</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span>Andres Alquinta Ayala</span>
