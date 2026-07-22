@@ -1,3 +1,4 @@
+// Build trigger comment to force Vercel build
 import React, { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { 
