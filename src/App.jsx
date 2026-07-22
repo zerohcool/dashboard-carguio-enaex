@@ -736,9 +736,12 @@ function App() {
                 </button>
               </>
             )}
-            <button className="btn btn-secondary" style={{ padding: '0.5rem', borderRadius: '50%', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={toggleTheme} title={`Cambiar a modo ${theme === 'dark' ? 'claro' : 'oscuro'}`}>
-              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
+            <label className="switch no-print" title={`Cambiar a modo ${theme === 'dark' ? 'claro' : 'oscuro'}`}>
+              <input type="checkbox" checked={theme === 'dark'} onChange={toggleTheme} />
+              <span className="slider">
+                <span className="slider-inner"></span>
+              </span>
+            </label>
           </div>
         </div>
       </header>
