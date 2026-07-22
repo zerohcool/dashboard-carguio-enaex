@@ -1,4 +1,4 @@
-// Build trigger comment to force Vercel build after rollback
+// Build trigger comment to force Vercel build after rollback - final date fix
 import React, { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { 
