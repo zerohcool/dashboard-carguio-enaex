@@ -26,12 +26,63 @@ import { getRowAlerts } from './utils/getRowAlerts';
 
 const getRowDateStr = (fechaVal) => {
   if (!fechaVal) return null;
+
+  // 1. Si ya es una instancia de Date
+  if (fechaVal instanceof Date) {
+    const year = fechaVal.getFullYear();
+    const month = String(fechaVal.getMonth() + 1).padStart(2, '0');
+    const day = String(fechaVal.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // 2. Si viene como número (número de serie de fecha de Excel)
+  if (typeof fechaVal === 'number') {
+    const dateObj = new Date((fechaVal - 25569) * 86400 * 1000);
+    if (!isNaN(dateObj.getTime())) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  }
+
+  // 3. Si viene como string
+  const str = String(fechaVal).trim();
+  if (!str) return null;
+
+  // Intenta matchear DD/MM/YYYY o DD-MM-YYYY o DD/MM/YY o DD-MM-YY
+  const matchDmy = str.match(/^(\d{1,2})[/\-](\d{1,2})[/\-](\d{2,4})$/);
+  if (matchDmy) {
+    let day = parseInt(matchDmy[1], 10);
+    let month = parseInt(matchDmy[2], 10);
+    let year = parseInt(matchDmy[3], 10);
+    if (year < 100) {
+      year += year < 50 ? 2000 : 1900;
+    }
+    const dayStr = String(day).padStart(2, '0');
+    const monthStr = String(month).padStart(2, '0');
+    return `${year}-${monthStr}-${dayStr}`;
+  }
+
+  // Intenta matchear YYYY-MM-DD
+  const matchYmd = str.match(/^(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})$/);
+  if (matchYmd) {
+    const year = matchYmd[1];
+    const month = String(parseInt(matchYmd[2], 10)).padStart(2, '0');
+    const day = String(parseInt(matchYmd[3], 10)).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // Intento de fallback general usando new Date
   const dateObj = new Date(fechaVal);
-  if (isNaN(dateObj.getTime())) return null;
-  const year = dateObj.getFullYear();
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  if (!isNaN(dateObj.getTime())) {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  return null;
 };
 
 function App() {
@@ -104,12 +155,16 @@ function App() {
   };
 
   const handlePrintRawExcel = () => {
-    if (!data || data.length === 0) return;
+    if (!rawExcelRows || rawExcelRows.length === 0) return;
     
     const rootEl = document.getElementById('root');
     if (rootEl) {
       rootEl.classList.add('printing-raw-excel');
     }
+    
+    const numCols = Object.keys(rawExcelRows[0] || {}).length;
+    const fontSize = numCols > 30 ? '4.5pt' : numCols > 15 ? '6pt' : '8pt';
+    const padding = numCols > 30 ? '1px 0.5px' : numCols > 15 ? '3px 1.5px' : '6px 4px';
     
     const style = document.createElement('style');
     style.id = 'raw-excel-print-style';
@@ -117,7 +172,7 @@ function App() {
       @media print {
         @page {
           size: letter landscape !important;
-          margin: 0.3in !important;
+          margin: 0.25in !important;
         }
         #root.printing-raw-excel .app-header,
         #root.printing-raw-excel .container,
@@ -142,13 +197,13 @@ function App() {
           padding: 0 !important;
         }
         .raw-excel-print-title {
-          font-family: 'Outfit', sans-serif !important;
-          font-size: 13pt !important;
+          font-family: Arial, Helvetica, sans-serif !important;
+          font-size: 11pt !important;
           font-weight: 700 !important;
-          margin-bottom: 0.6rem !important;
+          margin-bottom: 0.4rem !important;
           color: #1e3a8a !important;
           border-bottom: 2px solid #1e3a8a !important;
-          padding-bottom: 0.3rem !important;
+          padding-bottom: 0.2rem !important;
         }
         .raw-excel-print-table {
           width: 100% !important;
@@ -158,20 +213,22 @@ function App() {
         .raw-excel-print-table th {
           background: #f1f5f9 !important;
           color: #1e293b !important;
-          font-family: 'Outfit', sans-serif !important;
-          font-size: 7.5pt !important;
+          font-family: Arial, Helvetica, sans-serif !important;
+          font-size: ${fontSize} !important;
           font-weight: 700 !important;
-          padding: 5px 3px !important;
+          padding: ${padding} !important;
           border: 0.5px solid #94a3b8 !important;
           text-align: center !important;
+          white-space: nowrap !important;
         }
         .raw-excel-print-table td {
-          font-family: 'Outfit', sans-serif !important;
-          font-size: 7.5pt !important;
-          padding: 4px 3px !important;
+          font-family: Arial, Helvetica, sans-serif !important;
+          font-size: ${fontSize} !important;
+          padding: ${padding} !important;
           border: 0.5px solid #cbd5e1 !important;
           text-align: center !important;
           color: #334155 !important;
+          white-space: nowrap !important;
         }
       }
     `;
@@ -539,17 +596,9 @@ function App() {
       // Filtro de fecha única seleccionada
       let matchesFecha = true;
       if (filters.fecha) {
-        if (!row.fecha) {
+        const rowDateStr = getRowDateStr(row.fecha);
+        if (rowDateStr !== filters.fecha) {
           matchesFecha = false;
-        } else {
-          const dateObj = new Date(row.fecha);
-          const year = dateObj.getFullYear();
-          const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-          const day = String(dateObj.getDate()).padStart(2, '0');
-          const rowDateStr = `${year}-${month}-${day}`;
-          if (rowDateStr !== filters.fecha) {
-            matchesFecha = false;
-          }
         }
       }
 
@@ -1115,40 +1164,31 @@ function App() {
       </footer>
 
       {/* Renderizado especial para impresión de Planilla Completa */}
-      {/* Renderizado especial para impresión de Planilla Completa */}
-      {data && data.length > 0 && (
+      {rawExcelRows && rawExcelRows.length > 0 && (
         <div className="raw-excel-print-wrapper" style={{ display: 'none' }}>
-          <div className="raw-excel-print-title" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13pt', fontWeight: '700', color: '#1e3a8a', borderBottom: '2px solid #1e3a8a', paddingBottom: '0.3rem', marginBottom: '0.8rem' }}>
-            Planilla de Carguío (Resumen Traceabilidad) — {file?.name}
+          <div className="raw-excel-print-title">
+            Planilla Completa Original: {file?.name}
           </div>
-          <table className="raw-excel-print-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="raw-excel-print-table">
             <thead>
-              <tr style={{ background: '#f8fafc' }}>
-                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Pozo</th>
-                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Diámetro</th>
-                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Carga Fondo (kg)</th>
-                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Tipo Fondo</th>
-                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Camión Fondo</th>
-                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Carga Columna (kg)</th>
-                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Tipo Columna</th>
-                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Camión Columna</th>
-                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Carga Total (kg)</th>
-                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Operador</th>
+              <tr>
+                {Object.keys(rawExcelRows[0] || {}).map((key) => (
+                  <th key={key}>{key}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {data.map((row, idx) => (
-                <tr key={idx} style={{ background: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
-                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center', fontWeight: '600' }}>{row.pozo || '-'}</td>
-                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.diametro || '-'}</td>
-                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.cargaFondo !== null ? row.cargaFondo : '-'}</td>
-                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.tipoFondo || '-'}</td>
-                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.camionFondo || '-'}</td>
-                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.cargaColumna !== null ? row.cargaColumna : '-'}</td>
-                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.tipoColumna || '-'}</td>
-                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.camionColumna || '-'}</td>
-                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center', fontWeight: '600' }}>{row.cargaTotal !== null ? row.cargaTotal : '-'}</td>
-                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.operador || '-'}</td>
+              {rawExcelRows.map((row, idx) => (
+                <tr key={idx}>
+                  {Object.entries(row).map(([key, val]) => (
+                    <td key={key}>
+                      {val === null || val === undefined || String(val).trim() === '' ? (
+                        '-'
+                      ) : (
+                        String(val)
+                      )}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
