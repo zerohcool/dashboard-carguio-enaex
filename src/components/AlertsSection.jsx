@@ -18,6 +18,127 @@ function AlertsSection({ filteredData, rawExcelRows }) {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // 1. Procesamos los pozos con anomalías (Declarado en primer lugar)
+  const alertsData = useMemo(() => {
+    const fondoIssues = []; // Decimales, vacíos o descuadre en Cargas
+    const emptyFieldIssues = []; // Celdas vacías críticas (Trazabilidad mandatoria)
+    const diameterIssues = []; // Diámetros no en pulgadas
+    const totalMismatchIssues = []; // Ya no se usa por separado, pero lo definimos vacío por compatibilidad si es necesario
+    const uniqueExplosives = new Set();
+
+    filteredData.forEach(row => {
+      // 1. Carga decimal, vacía o con descuadre (suma fondo+columna o carga total)
+      const hasFondoColumna = (row.cargaFondo !== null && row.cargaFondo !== undefined) || (row.cargaColumna !== null && row.cargaColumna !== undefined);
+      const sumFondoColumna = (row.cargaFondo || 0) + (row.cargaColumna || 0);
+      const isSumDecimal = hasFondoColumna && (sumFondoColumna % 1 !== 0);
+      const isSumEmpty = !hasFondoColumna;
+      const isTotalEmpty = row.cargaTotal === null || row.cargaTotal === undefined;
+      const isTotalDecimal = !isTotalEmpty && (row.cargaTotal % 1 !== 0);
+      
+      // Descuadre entre suma y total (si hay total y hay cargas)
+      const isMismatch = (row.cargaTotal !== null && row.cargaTotal !== undefined) && Math.abs(row.cargaTotal - sumFondoColumna) > 0.1;
+
+      if (isSumDecimal || isSumEmpty || isTotalEmpty || isTotalDecimal || isMismatch) {
+        let reason = '';
+        if (isMismatch) {
+          reason = `Descuadre: Suma ${sumFondoColumna} vs Total ${row.cargaTotal}`;
+        } else if (isSumEmpty && isTotalEmpty) {
+          reason = 'Vacío';
+        } else if (isSumDecimal || isTotalDecimal) {
+          const parts = [];
+          if (isSumDecimal) parts.push(`Suma: ${sumFondoColumna}`);
+          if (isTotalDecimal) parts.push(`Total: ${row.cargaTotal}`);
+          reason = `Decimal (${parts.join(', ')})`;
+        } else if (isTotalEmpty) {
+          reason = 'Total Vacío';
+        } else {
+          reason = 'Cargas Vacías';
+        }
+
+        fondoIssues.push({
+          pozo: row.pozo,
+          reason,
+          type: (isSumEmpty || isTotalEmpty) ? 'empty' : 'decimal'
+        });
+      }
+
+      // 2. Celdas vacías en columnas mandatorias (Trazabilidad)
+      const missingFields = [];
+      
+      // Falta carga total, carga fondo y carga columna simultáneamente
+      const isAllCargasEmpty = isTotalEmpty && isSumEmpty;
+      if (isAllCargasEmpty) {
+        missingFields.push('Cargas (Vacío Total)');
+      } else {
+        // Validación cruzada de campos mandatorios:
+        // Si hay carga fondo, tipoFondo y camionFondo son mandatorios
+        const hasFondoLoad = row.cargaFondo !== null && row.cargaFondo > 0;
+        if (hasFondoLoad) {
+          if (!row.tipoFondo || String(row.tipoFondo).trim() === '') missingFields.push('Tipo Fondo');
+          if (!row.camionFondo || String(row.camionFondo).trim() === '') missingFields.push('Camión Fondo');
+        }
+        
+        // Si hay carga columna, tipoColumna y camionColumna son mandatorios
+        const hasColumnaLoad = row.cargaColumna !== null && row.cargaColumna > 0;
+        if (hasColumnaLoad) {
+          if (!row.tipoColumna || String(row.tipoColumna).trim() === '') missingFields.push('Tipo Columna');
+          if (!row.camionColumna || String(row.camionColumna).trim() === '') missingFields.push('Camión Columna');
+        }
+      }
+
+      // Tipo de explosivo vacío a la vez (si no se validó arriba por no haber cargas)
+      const isAllTiposEmpty = (!row.tipoFondo || String(row.tipoFondo).trim() === '') &&
+                              (!row.tipoColumna || String(row.tipoColumna).trim() === '');
+      if (isAllTiposEmpty && !missingFields.includes('Tipo Fondo') && !missingFields.includes('Tipo Columna')) {
+        missingFields.push('Tipo Explosivo');
+      }
+
+      // Camión vacío a la vez (si no se validó arriba por no haber cargas)
+      const isAllCamionesEmpty = (!row.camionFondo || String(row.camionFondo).trim() === '') &&
+                                 (!row.camionColumna || String(row.camionColumna).trim() === '');
+      if (isAllCamionesEmpty && !missingFields.includes('Camión Fondo') && !missingFields.includes('Camión Columna')) {
+        missingFields.push('Camión');
+      }
+
+      // Operador
+      if (!row.operador || String(row.operador).trim() === '') {
+        missingFields.push('Operador');
+      }
+
+      if (missingFields.length > 0) {
+        emptyFieldIssues.push({
+          pozo: row.pozo,
+          fields: missingFields.join(', ')
+        });
+      }
+
+      // 3. Diámetro no en pulgadas
+      if (isNotPureInches(row.diametro)) {
+        diameterIssues.push({
+          pozo: row.pozo,
+          diametro: row.diametro || '(vacío)'
+        });
+      }
+
+      // Coleccionar tipos de explosivo únicos
+      if (row.tipoFondo) uniqueExplosives.add(row.tipoFondo);
+      if (row.tipoColumna) uniqueExplosives.add(row.tipoColumna);
+    });
+
+    const hasMultipleExplosives = uniqueExplosives.size > 1;
+    const explosiveListStr = Array.from(uniqueExplosives).join(', ');
+
+    return { 
+      fondoIssues, 
+      emptyFieldIssues, 
+      diameterIssues, 
+      totalMismatchIssues,
+      hasMultipleExplosives, 
+      explosiveListStr 
+    };
+  }, [filteredData]);
+
+  // 2. Procesamos los resúmenes textuales de pozos con anomalías
   const pozoTextSummaries = useMemo(() => {
     const summaries = {};
 
@@ -214,126 +335,6 @@ function AlertsSection({ filteredData, rawExcelRows }) {
     
     return '';
   };
-
-  // Procesamos los pozos con anomalías
-  const alertsData = useMemo(() => {
-    const fondoIssues = []; // Decimales, vacíos o descuadre en Cargas
-    const emptyFieldIssues = []; // Celdas vacías críticas (Trazabilidad mandatoria)
-    const diameterIssues = []; // Diámetros no en pulgadas
-    const totalMismatchIssues = []; // Ya no se usa por separado, pero lo definimos vacío por compatibilidad si es necesario
-    const uniqueExplosives = new Set();
-
-    filteredData.forEach(row => {
-      // 1. Carga decimal, vacía o con descuadre (suma fondo+columna o carga total)
-      const hasFondoColumna = (row.cargaFondo !== null && row.cargaFondo !== undefined) || (row.cargaColumna !== null && row.cargaColumna !== undefined);
-      const sumFondoColumna = (row.cargaFondo || 0) + (row.cargaColumna || 0);
-      const isSumDecimal = hasFondoColumna && (sumFondoColumna % 1 !== 0);
-      const isSumEmpty = !hasFondoColumna;
-      const isTotalEmpty = row.cargaTotal === null || row.cargaTotal === undefined;
-      const isTotalDecimal = !isTotalEmpty && (row.cargaTotal % 1 !== 0);
-      
-      // Descuadre entre suma y total (si hay total y hay cargas)
-      const isMismatch = (row.cargaTotal !== null && row.cargaTotal !== undefined) && Math.abs(row.cargaTotal - sumFondoColumna) > 0.1;
-
-      if (isSumDecimal || isSumEmpty || isTotalEmpty || isTotalDecimal || isMismatch) {
-        let reason = '';
-        if (isMismatch) {
-          reason = `Descuadre: Suma ${sumFondoColumna} vs Total ${row.cargaTotal}`;
-        } else if (isSumEmpty && isTotalEmpty) {
-          reason = 'Vacío';
-        } else if (isSumDecimal || isTotalDecimal) {
-          const parts = [];
-          if (isSumDecimal) parts.push(`Suma: ${sumFondoColumna}`);
-          if (isTotalDecimal) parts.push(`Total: ${row.cargaTotal}`);
-          reason = `Decimal (${parts.join(', ')})`;
-        } else if (isTotalEmpty) {
-          reason = 'Total Vacío';
-        } else {
-          reason = 'Cargas Vacías';
-        }
-
-        fondoIssues.push({
-          pozo: row.pozo,
-          reason,
-          type: (isSumEmpty || isTotalEmpty) ? 'empty' : 'decimal'
-        });
-      }
-
-      // 2. Celdas vacías en columnas mandatorias (Trazabilidad)
-      const missingFields = [];
-      
-      // Falta carga total, carga fondo y carga columna simultáneamente
-      const isAllCargasEmpty = isTotalEmpty && isSumEmpty;
-      if (isAllCargasEmpty) {
-        missingFields.push('Cargas (Vacío Total)');
-      } else {
-        // Validación cruzada de campos mandatorios:
-        // Si hay carga fondo, tipoFondo y camionFondo son mandatorios
-        const hasFondoLoad = row.cargaFondo !== null && row.cargaFondo > 0;
-        if (hasFondoLoad) {
-          if (!row.tipoFondo || String(row.tipoFondo).trim() === '') missingFields.push('Tipo Fondo');
-          if (!row.camionFondo || String(row.camionFondo).trim() === '') missingFields.push('Camión Fondo');
-        }
-        
-        // Si hay carga columna, tipoColumna y camionColumna son mandatorios
-        const hasColumnaLoad = row.cargaColumna !== null && row.cargaColumna > 0;
-        if (hasColumnaLoad) {
-          if (!row.tipoColumna || String(row.tipoColumna).trim() === '') missingFields.push('Tipo Columna');
-          if (!row.camionColumna || String(row.camionColumna).trim() === '') missingFields.push('Camión Columna');
-        }
-      }
-
-      // Tipo de explosivo vacío a la vez (si no se validó arriba por no haber cargas)
-      const isAllTiposEmpty = (!row.tipoFondo || String(row.tipoFondo).trim() === '') &&
-                              (!row.tipoColumna || String(row.tipoColumna).trim() === '');
-      if (isAllTiposEmpty && !missingFields.includes('Tipo Fondo') && !missingFields.includes('Tipo Columna')) {
-        missingFields.push('Tipo Explosivo');
-      }
-
-      // Camión vacío a la vez (si no se validó arriba por no haber cargas)
-      const isAllCamionesEmpty = (!row.camionFondo || String(row.camionFondo).trim() === '') &&
-                                 (!row.camionColumna || String(row.camionColumna).trim() === '');
-      if (isAllCamionesEmpty && !missingFields.includes('Camión Fondo') && !missingFields.includes('Camión Columna')) {
-        missingFields.push('Camión');
-      }
-
-      // Operador
-      if (!row.operador || String(row.operador).trim() === '') {
-        missingFields.push('Operador');
-      }
-
-      if (missingFields.length > 0) {
-        emptyFieldIssues.push({
-          pozo: row.pozo,
-          fields: missingFields.join(', ')
-        });
-      }
-
-      // 3. Diámetro no en pulgadas
-      if (isNotPureInches(row.diametro)) {
-        diameterIssues.push({
-          pozo: row.pozo,
-          diametro: row.diametro || '(vacío)'
-        });
-      }
-
-      // Coleccionar tipos de explosivo únicos
-      if (row.tipoFondo) uniqueExplosives.add(row.tipoFondo);
-      if (row.tipoColumna) uniqueExplosives.add(row.tipoColumna);
-    });
-
-    const hasMultipleExplosives = uniqueExplosives.size > 1;
-    const explosiveListStr = Array.from(uniqueExplosives).join(', ');
-
-    return { 
-      fondoIssues, 
-      emptyFieldIssues, 
-      diameterIssues, 
-      totalMismatchIssues,
-      hasMultipleExplosives, 
-      explosiveListStr 
-    };
-  }, [filteredData]);
 
   const hasAnyAlerts = 
     alertsData.fondoIssues.length > 0 || 
