@@ -372,11 +372,14 @@ function App() {
           }
         });
 
-        // Limpieza: filtrar filas que no tengan un pozo válido o estén vacías
-        const cleanedData = normalized.filter(row => row.pozo !== null && row.pozo !== '');
+        // Limpieza: conservar filas que tengan al menos algún dato de carguío significativo
+        const cleanedData = normalized.filter(row => {
+          const hasSignificantData = row.pozo || row.fase || row.banco || row.operador || row.cargaFondo || row.cargaColumna || row.cargaTotal;
+          return !!hasSignificantData;
+        });
 
         if (cleanedData.length === 0) {
-          throw new Error('No se encontraron registros de pozos válidos con el número de pozo completo.');
+          throw new Error('No se encontraron registros de pozos con datos en la planilla cargada.');
         }
 
         const url = URL.createObjectURL(fileObject);
