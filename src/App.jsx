@@ -14,7 +14,8 @@ import {
   Sun,
   Moon,
   FileText,
-  Printer
+  Printer,
+  ChevronRight
 } from 'lucide-react';
 import DashboardOverview from './components/DashboardOverview';
 import DataTable from './components/DataTable';
@@ -22,6 +23,16 @@ import AlertsSection from './components/AlertsSection';
 import DeviationSection from './components/DeviationSection';
 import ValeConsumoSection from './components/ValeConsumoSection';
 import { getRowAlerts } from './utils/getRowAlerts';
+
+const getRowDateStr = (fechaVal) => {
+  if (!fechaVal) return null;
+  const dateObj = new Date(fechaVal);
+  if (isNaN(dateObj.getTime())) return null;
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 function App() {
   const [file, setFile] = useState(null);
@@ -32,6 +43,10 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [draggingType, setDraggingType] = useState(null); // null, 'datawall', 'final_review'
+  const [allLoadedData, setAllLoadedData] = useState(null);
+  const [allRawExcelRows, setAllRawExcelRows] = useState([]);
+  const [availableDates, setAvailableDates] = useState([]);
+  const [showDateSelector, setShowDateSelector] = useState(false);
   const [theme, setTheme] = useState('light');
 
   const toggleTheme = () => {
@@ -174,6 +189,32 @@ function App() {
       const styleEl = document.getElementById('raw-excel-print-style');
       if (styleEl) styleEl.remove();
     }, 80);
+  };
+
+  const handleSelectDate = (selectedDateStr) => {
+    if (!allLoadedData) return;
+
+    const filteredNormal = allLoadedData.filter(row => getRowDateStr(row.fecha) === selectedDateStr);
+    
+    const filteredRaw = allRawExcelRows.filter((rawRow) => {
+      const rawDateVal = rawRow['Fecha'] || rawRow['fecha'] || rawRow['FECHA'] || rawRow['Fecha Carguío Adelanto'] || rawRow['Fecha Carguio Adelanto'];
+      if (!rawDateVal) return false;
+      return getRowDateStr(rawDateVal) === selectedDateStr;
+    });
+
+    setData(filteredNormal);
+    if (filteredRaw.length === 0) {
+      const allowedPozos = new Set(filteredNormal.map(r => String(r.pozo).trim()));
+      const fallbackRaw = allRawExcelRows.filter(rawRow => {
+        const pVal = rawRow['N° Pozo'] || rawRow['pozo'] || rawRow['Pozo'];
+        return pVal !== undefined && pVal !== null && allowedPozos.has(String(pVal).trim());
+      });
+      setRawExcelRows(fallbackRaw);
+    } else {
+      setRawExcelRows(filteredRaw);
+    }
+
+    setShowDateSelector(false);
   };
 
   const handleDragOver = (e, type) => {
@@ -347,8 +388,31 @@ function App() {
           name: fileObject.name,
           size: (fileObject.size / 1024).toFixed(1) + ' KB'
         });
-        setRawExcelRows(jsonData);
-        setData(cleanedData);
+
+        const dateSet = new Set();
+        cleanedData.forEach(row => {
+          const dateStr = getRowDateStr(row.fecha);
+          if (dateStr) {
+            dateSet.add(dateStr);
+          }
+        });
+        const uniqueDates = Array.from(dateSet).sort();
+
+        if (uniqueDates.length > 1) {
+          setAllLoadedData(cleanedData);
+          setAllRawExcelRows(jsonData);
+          setAvailableDates(uniqueDates);
+          setShowDateSelector(true);
+          setData(null);
+          setRawExcelRows([]);
+        } else {
+          setData(cleanedData);
+          setRawExcelRows(jsonData);
+          setAllLoadedData(null);
+          setAllRawExcelRows([]);
+          setAvailableDates([]);
+          setShowDateSelector(false);
+        }
         setLoading(false);
       } catch (err) {
         console.error(err);
@@ -1089,6 +1153,65 @@ function App() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+      {showDateSelector && (
+        <div className="modal-overlay no-print" style={{ zIndex: 9999 }}>
+          <div className="modal-content-card" style={{ maxWidth: '450px', width: '90%' }}>
+            <div className="modal-header-bar" style={{ borderBottom: 'none', paddingBottom: '0' }}>
+              <div className="modal-header-title">
+                <Calendar size={18} style={{ color: 'var(--primary)' }} />
+                <span style={{ fontWeight: '700', fontSize: '1.1rem' }}>
+                  Selección de Fecha de Trabajo
+                </span>
+              </div>
+            </div>
+            <div className="modal-body-area" style={{ textAlign: 'center', paddingTop: '0.5rem' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.45' }}>
+                Hemos detectado que esta planilla contiene datos de **múltiples fechas**. Por favor, selecciona la fecha con la que deseas trabajar hoy:
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+                {availableDates.map(dateStr => {
+                  const [y, m, d] = dateStr.split('-');
+                  const formattedHumanDate = `${d}/${m}/${y}`;
+                  
+                  return (
+                    <button
+                      key={dateStr}
+                      onClick={() => handleSelectDate(dateStr)}
+                      className="btn"
+                      style={{
+                        padding: '0.75rem 1rem',
+                        fontSize: '0.9rem',
+                        fontWeight: '600',
+                        color: 'var(--text-primary)',
+                        background: 'var(--card-bg)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--primary)';
+                        e.currentTarget.style.background = 'rgba(79, 70, 229, 0.04)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                        e.currentTarget.style.background = 'var(--card-bg)';
+                      }}
+                    >
+                      <span>{formattedHumanDate}</span>
+                      <ChevronRight size={16} style={{ color: 'var(--text-secondary)' }} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

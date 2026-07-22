@@ -57,6 +57,7 @@ function AlertsSection({ filteredData, rawExcelRows }) {
 
         fondoIssues.push({
           pozo: row.pozo,
+          poligono: row.poligono || '',
           reason,
           type: (isSumEmpty || isTotalEmpty) ? 'empty' : 'decimal'
         });
@@ -108,6 +109,7 @@ function AlertsSection({ filteredData, rawExcelRows }) {
       if (missingFields.length > 0) {
         emptyFieldIssues.push({
           pozo: row.pozo,
+          poligono: row.poligono || '',
           fields: missingFields.join(', ')
         });
       }
@@ -116,6 +118,7 @@ function AlertsSection({ filteredData, rawExcelRows }) {
       if (isNotPureInches(row.diametro)) {
         diameterIssues.push({
           pozo: row.pozo,
+          poligono: row.poligono || '',
           diametro: row.diametro || '(vacío)'
         });
       }
@@ -142,16 +145,21 @@ function AlertsSection({ filteredData, rawExcelRows }) {
   const pozoTextSummaries = useMemo(() => {
     const summaries = {};
 
-    const getOrInitPozo = (p) => {
-      if (!summaries[p]) {
-        summaries[p] = [];
+    const getOrInitPozo = (pozoNum, poligonoVal) => {
+      const key = `${pozoNum}|${poligonoVal || ''}`;
+      if (!summaries[key]) {
+        summaries[key] = {
+          pozo: pozoNum,
+          poligono: poligonoVal || '',
+          errors: []
+        };
       }
-      return summaries[p];
+      return summaries[key].errors;
     };
 
     // 1. Cargas
     alertsData.fondoIssues.forEach(issue => {
-      const list = getOrInitPozo(issue.pozo);
+      const list = getOrInitPozo(issue.pozo, issue.poligono);
       if (issue.reason.includes('Descuadre')) {
         list.push(`tiene un descuadre en las cargas (suma de fondo y columna no coincide con carga total: ${issue.reason.replace('Descuadre: ', '')})`);
       } else if (issue.reason.includes('Decimal')) {
@@ -165,7 +173,7 @@ function AlertsSection({ filteredData, rawExcelRows }) {
 
     // 2. Trazabilidad
     alertsData.emptyFieldIssues.forEach(issue => {
-      const list = getOrInitPozo(issue.pozo);
+      const list = getOrInitPozo(issue.pozo, issue.poligono);
       const fieldsArr = issue.fields.split(',').map(f => f.trim());
       fieldsArr.forEach(field => {
         list.push(`la columna "${field}" está vacía`);
@@ -174,26 +182,28 @@ function AlertsSection({ filteredData, rawExcelRows }) {
 
     // 3. Diámetro
     alertsData.diameterIssues.forEach(issue => {
-      const list = getOrInitPozo(issue.pozo);
+      const list = getOrInitPozo(issue.pozo, issue.poligono);
       list.push(`tiene un diámetro incorrecto ("${issue.diametro}") ya que no se ingresó en pulgadas`);
     });
 
-    return Object.entries(summaries).sort((a, b) => {
-      const numA = parseInt(String(a[0]).replace(/\D/g, '')) || 0;
-      const numB = parseInt(String(b[0]).replace(/\D/g, '')) || 0;
-      return numA - numB;
+    return Object.values(summaries).sort((a, b) => {
+      const numA = parseInt(String(a.pozo).replace(/\D/g, '')) || 0;
+      const numB = parseInt(String(b.pozo).replace(/\D/g, '')) || 0;
+      if (numA !== numB) return numA - numB;
+      return String(a.poligono).localeCompare(String(b.poligono));
     });
   }, [alertsData]);
 
   const handleCopyClipboard = () => {
-    const textToCopy = pozoTextSummaries.map(([pozo, errors]) => {
-      const formattedErrors = errors.map((err, i) => {
+    const textToCopy = pozoTextSummaries.map((item) => {
+      const formattedErrors = item.errors.map((err, i) => {
         if (i === 0) {
           return err.charAt(0).toUpperCase() + err.slice(1);
         }
         return err;
       });
-      return `Pozo P-${pozo}: ${formattedErrors.join(', ')}.`;
+      const tagPoligono = item.poligono ? ` (Malla ${item.poligono})` : '';
+      return `Pozo P-${item.pozo}${tagPoligono}: ${formattedErrors.join(', ')}.`;
     }).join('\n');
     
     navigator.clipboard.writeText(textToCopy);
@@ -611,9 +621,9 @@ function AlertsSection({ filteredData, rawExcelRows }) {
                     ✓ No se detectaron anomalías en la planilla.
                   </div>
                 ) : (
-                  pozoTextSummaries.map(([pozo, errors]) => (
+                  pozoTextSummaries.map((item, idx) => (
                     <div 
-                      key={pozo} 
+                      key={idx} 
                       style={{ 
                         background: 'rgba(239, 68, 68, 0.03)', 
                         border: '1px solid rgba(239, 68, 68, 0.12)', 
@@ -624,10 +634,10 @@ function AlertsSection({ filteredData, rawExcelRows }) {
                       }}
                     >
                       <strong style={{ color: 'var(--danger)', display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
-                        Pozo P-{pozo}:
+                        Pozo P-{item.pozo}{item.poligono ? ` (Malla ${item.poligono})` : ''}:
                       </strong>
                       <span style={{ color: 'var(--text-primary)' }}>
-                        {errors.map((err, i) => i === 0 ? err.charAt(0).toUpperCase() + err.slice(1) : err).join(', ') + '.'}
+                        {item.errors.map((err, i) => i === 0 ? err.charAt(0).toUpperCase() + err.slice(1) : err).join(', ') + '.'}
                       </span>
                     </div>
                   ))
