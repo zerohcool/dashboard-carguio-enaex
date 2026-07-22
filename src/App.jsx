@@ -89,7 +89,7 @@ function App() {
   };
 
   const handlePrintRawExcel = () => {
-    if (!rawExcelRows || rawExcelRows.length === 0) return;
+    if (!data || data.length === 0) return;
     
     const rootEl = document.getElementById('root');
     if (rootEl) {
@@ -102,7 +102,7 @@ function App() {
       @media print {
         @page {
           size: letter landscape !important;
-          margin: 0.25in !important;
+          margin: 0.3in !important;
         }
         #root.printing-raw-excel .app-header,
         #root.printing-raw-excel .container,
@@ -128,12 +128,12 @@ function App() {
         }
         .raw-excel-print-title {
           font-family: 'Outfit', sans-serif !important;
-          font-size: 11pt !important;
+          font-size: 13pt !important;
           font-weight: 700 !important;
-          margin-bottom: 0.5rem !important;
+          margin-bottom: 0.6rem !important;
           color: #1e3a8a !important;
-          border-bottom: 1.5px solid #1e3a8a !important;
-          padding-bottom: 0.2rem !important;
+          border-bottom: 2px solid #1e3a8a !important;
+          padding-bottom: 0.3rem !important;
         }
         .raw-excel-print-table {
           width: 100% !important;
@@ -144,22 +144,18 @@ function App() {
           background: #f1f5f9 !important;
           color: #1e293b !important;
           font-family: 'Outfit', sans-serif !important;
-          font-size: 5.5pt !important;
+          font-size: 7.5pt !important;
           font-weight: 700 !important;
-          padding: 3px 1.5px !important;
+          padding: 5px 3px !important;
           border: 0.5px solid #94a3b8 !important;
           text-align: center !important;
-          white-space: normal !important;
-          word-break: break-word !important;
         }
         .raw-excel-print-table td {
           font-family: 'Outfit', sans-serif !important;
-          font-size: 5.5pt !important;
-          padding: 3px 1.5px !important;
+          font-size: 7.5pt !important;
+          padding: 4px 3px !important;
           border: 0.5px solid #cbd5e1 !important;
           text-align: center !important;
-          white-space: normal !important;
-          word-break: break-word !important;
           color: #334155 !important;
         }
       }
@@ -1055,31 +1051,40 @@ function App() {
       </footer>
 
       {/* Renderizado especial para impresión de Planilla Completa */}
-      {rawExcelRows && rawExcelRows.length > 0 && (
+      {/* Renderizado especial para impresión de Planilla Completa */}
+      {data && data.length > 0 && (
         <div className="raw-excel-print-wrapper" style={{ display: 'none' }}>
-          <div className="raw-excel-print-title">
-            Planilla Completa Original: {file?.name}
+          <div className="raw-excel-print-title" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13pt', fontWeight: '700', color: '#1e3a8a', borderBottom: '2px solid #1e3a8a', paddingBottom: '0.3rem', marginBottom: '0.8rem' }}>
+            Planilla de Carguío (Resumen Traceabilidad) — {file?.name}
           </div>
-          <table className="raw-excel-print-table">
+          <table className="raw-excel-print-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr>
-                {Object.keys(rawExcelRows[0] || {}).map((key) => (
-                  <th key={key}>{key}</th>
-                ))}
+              <tr style={{ background: '#f8fafc' }}>
+                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Pozo</th>
+                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Diámetro</th>
+                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Carga Fondo (kg)</th>
+                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Tipo Fondo</th>
+                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Camión Fondo</th>
+                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Carga Columna (kg)</th>
+                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Tipo Columna</th>
+                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Camión Columna</th>
+                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Carga Total (kg)</th>
+                <th style={{ padding: '6px 4px', border: '1px solid #cbd5e1', fontSize: '8pt', fontWeight: '700', textAlign: 'center' }}>Operador</th>
               </tr>
             </thead>
             <tbody>
-              {rawExcelRows.map((row, idx) => (
-                <tr key={idx}>
-                  {Object.entries(row).map(([key, val]) => (
-                    <td key={key}>
-                      {val === null || val === undefined || String(val).trim() === '' ? (
-                        '-'
-                      ) : (
-                        String(val)
-                      )}
-                    </td>
-                  ))}
+              {data.map((row, idx) => (
+                <tr key={idx} style={{ background: idx % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center', fontWeight: '600' }}>{row.pozo || '-'}</td>
+                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.diametro || '-'}</td>
+                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.cargaFondo !== null ? row.cargaFondo : '-'}</td>
+                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.tipoFondo || '-'}</td>
+                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.camionFondo || '-'}</td>
+                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.cargaColumna !== null ? row.cargaColumna : '-'}</td>
+                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.tipoColumna || '-'}</td>
+                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.camionColumna || '-'}</td>
+                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center', fontWeight: '600' }}>{row.cargaTotal !== null ? row.cargaTotal : '-'}</td>
+                  <td style={{ padding: '5px 4px', border: '1px solid #cbd5e1', fontSize: '7.5pt', textAlign: 'center' }}>{row.operador || '-'}</td>
                 </tr>
               ))}
             </tbody>
