@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Printer, RefreshCw, FileText } from 'lucide-react';
+import { getRowDateStr } from '../utils/dateUtils';
 
 function ValeConsumoSection({ filteredData, file }) {
   // Extracción del número de vale para pre-llenar
@@ -36,15 +37,13 @@ function ValeConsumoSection({ filteredData, file }) {
     let dateStr = '';
     const dates = filteredData.map(r => r.fecha).filter(Boolean);
     if (dates.length > 0) {
-      const parsedDate = new Date(dates[0]);
-      if (!isNaN(parsedDate.getTime())) {
-        const y = parsedDate.getFullYear();
-        const m = String(parsedDate.getMonth() + 1).padStart(2, '0');
-        const d = String(parsedDate.getDate()).padStart(2, '0');
+      const isoDate = getRowDateStr(dates[0]);
+      if (isoDate) {
+        const [y, m, d] = isoDate.split('-');
         dateStr = `${d}-${m}-${y}`;
       }
-    } else {
-      // Fecha actual como fallback
+    }
+    if (!dateStr) {
       const today = new Date();
       const y = today.getFullYear();
       const m = String(today.getMonth() + 1).padStart(2, '0');
