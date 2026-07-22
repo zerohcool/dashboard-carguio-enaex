@@ -24,6 +24,7 @@ import {
   ArrowDown
 } from 'lucide-react';
 import DeviationSection from './DeviationSection';
+import { getRowAlerts } from '../utils/getRowAlerts';
 
 ChartJS.register(
   CategoryScale,
@@ -74,6 +75,7 @@ function DashboardOverview({ filteredData, rawData, rawExcelRows, theme }) {
     
     let pozosConAgua = 0;
     let totalPrimas = 0;
+    let pozosConErrores = 0;
 
     let maxCharge = -1;
     let maxPozo = '-';
@@ -86,6 +88,11 @@ function DashboardOverview({ filteredData, rawData, rawExcelRows, theme }) {
     let pozosCuadruples = 0;
 
     filteredData.forEach(row => {
+      const alerts = getRowAlerts(row);
+      if (alerts.length > 0) {
+        pozosConErrores++;
+      }
+
       if (row.longitudReal !== null) {
         totalMetersReal += row.longitudReal;
         countReal++;
@@ -151,6 +158,7 @@ function DashboardOverview({ filteredData, rawData, rawExcelRows, theme }) {
       totalCarga,
       avgTaco,
       pozosConAgua,
+      pozosConErrores,
       pctAgua,
       totalPrimas,
       maxPozoNum: finalMaxPozo,
@@ -435,11 +443,21 @@ function DashboardOverview({ filteredData, rawData, rawExcelRows, theme }) {
       <section className="dashboard-grid">
         
         {/* KPI 1: Pozos Filtrados */}
-        <div className="kpi-card glass-panel" style={{ '--card-accent': 'var(--primary)', '--card-accent-glow': 'var(--primary-glow)' }}>
+        <div className="kpi-card glass-panel" style={{ 
+          '--card-accent': stats.pozosConErrores > 0 ? 'var(--danger)' : 'var(--primary)', 
+          '--card-accent-glow': stats.pozosConErrores > 0 ? 'var(--danger-glow)' : 'var(--primary-glow)' 
+        }}>
           <div className="kpi-info">
             <span className="kpi-label">Pozos Filtrados</span>
-            <span className="kpi-value">{stats.totalPozos}</span>
-            <span className="kpi-detail">De un total de {rawData.length}</span>
+            <span className="kpi-value" style={{ display: 'flex', alignItems: 'baseline', gap: '0.35rem', flexWrap: 'wrap' }}>
+              <span>{stats.totalPozos - stats.pozosConErrores}</span>
+              {stats.pozosConErrores > 0 && (
+                <span style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--danger)' }}>
+                  + {stats.pozosConErrores} c/error
+                </span>
+              )}
+            </span>
+            <span className="kpi-detail">De un total de {rawData.length} en archivo</span>
           </div>
           <div className="kpi-icon-wrapper">
             <Compass size={24} />

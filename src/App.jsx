@@ -467,12 +467,9 @@ function App() {
     // Calcular fechas únicas en formato local YYYY-MM-DD
     const fechasSet = new Set();
     data.forEach(r => {
-      if (r.fecha) {
-        const dateObj = new Date(r.fecha);
-        const year = dateObj.getFullYear();
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        fechasSet.add(`${year}-${month}-${day}`);
+      const dateStr = getRowDateStr(r.fecha);
+      if (dateStr) {
+        fechasSet.add(dateStr);
       }
     });
     const fechas = Array.from(fechasSet).sort();
@@ -555,21 +552,17 @@ function App() {
   // Fecha del reporte o datos
   const dateFormatted = useMemo(() => {
     if (!data || data.length === 0) return '';
-    const dates = data.map(r => r.fecha).filter(Boolean);
-    if (dates.length === 0) return '';
+    const dateStrings = Array.from(new Set(data.map(r => getRowDateStr(r.fecha)).filter(Boolean))).sort();
+    if (dateStrings.length === 0) return '';
     
-    // Si la fecha es de tipo Date de JS
-    const parsedDates = dates.map(d => new Date(d)).filter(d => !isNaN(d.getTime()));
-    if (parsedDates.length === 0) return '';
+    const formatStr = (str) => {
+      const [y, m, d] = str.split('-');
+      return `${d}/${m}/${y}`;
+    };
     
-    const minDate = new Date(Math.min(...parsedDates));
-    const maxDate = new Date(Math.max(...parsedDates));
-    
-    const format = (d) => d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    
-    return minDate.getTime() === maxDate.getTime() 
-      ? format(minDate) 
-      : `${format(minDate)} - ${format(maxDate)}`;
+    return dateStrings.length === 1
+      ? formatStr(dateStrings[0])
+      : `${formatStr(dateStrings[0])} - ${formatStr(dateStrings[dateStrings.length - 1])}`;
   }, [data]);
 
   // Calcular resumen del explosivo seleccionado y sus kilos
