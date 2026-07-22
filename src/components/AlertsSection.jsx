@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, X, FileText } from 'lucide-react';
 
 const isNotPureInches = (diamStr) => {
   if (!diamStr) return false;
@@ -15,6 +15,70 @@ const isNotPureInches = (diamStr) => {
 
 function AlertsSection({ filteredData, rawExcelRows }) {
   const [inspectingPozo, setInspectingPozo] = useState(null);
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const pozoTextSummaries = useMemo(() => {
+    const summaries = {};
+
+    const getOrInitPozo = (p) => {
+      if (!summaries[p]) {
+        summaries[p] = [];
+      }
+      return summaries[p];
+    };
+
+    // 1. Cargas
+    alertsData.fondoIssues.forEach(issue => {
+      const list = getOrInitPozo(issue.pozo);
+      if (issue.reason.includes('Descuadre')) {
+        list.push(`tiene un descuadre en las cargas (suma de fondo y columna no coincide con carga total: ${issue.reason.replace('Descuadre: ', '')})`);
+      } else if (issue.reason.includes('Decimal')) {
+        list.push(`tiene valores con decimales en los pesos de carga (${issue.reason.replace('Decimal (', '').replace(')', '')})`);
+      } else if (issue.reason.includes('Vacío') || issue.reason.includes('vacías')) {
+        list.push(`no registra pesos de carga`);
+      } else {
+        list.push(`presenta una anomalía de carga: ${issue.reason}`);
+      }
+    });
+
+    // 2. Trazabilidad
+    alertsData.emptyFieldIssues.forEach(issue => {
+      const list = getOrInitPozo(issue.pozo);
+      const fieldsArr = issue.fields.split(',').map(f => f.trim());
+      fieldsArr.forEach(field => {
+        list.push(`la columna "${field}" está vacía`);
+      });
+    });
+
+    // 3. Diámetro
+    alertsData.diameterIssues.forEach(issue => {
+      const list = getOrInitPozo(issue.pozo);
+      list.push(`tiene un diámetro incorrecto ("${issue.diametro}") ya que no se ingresó en pulgadas`);
+    });
+
+    return Object.entries(summaries).sort((a, b) => {
+      const numA = parseInt(String(a[0]).replace(/\D/g, '')) || 0;
+      const numB = parseInt(String(b[0]).replace(/\D/g, '')) || 0;
+      return numA - numB;
+    });
+  }, [alertsData]);
+
+  const handleCopyClipboard = () => {
+    const textToCopy = pozoTextSummaries.map(([pozo, errors]) => {
+      const formattedErrors = errors.map((err, i) => {
+        if (i === 0) {
+          return err.charAt(0).toUpperCase() + err.slice(1);
+        }
+        return err;
+      });
+      return `Pozo P-${pozo}: ${formattedErrors.join(', ')}.`;
+    }).join('\n');
+    
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleInspectPozo = (pozoNum, errorType) => {
     if (!rawExcelRows || rawExcelRows.length === 0) return;
@@ -298,9 +362,40 @@ function AlertsSection({ filteredData, rawExcelRows }) {
 
   return (
     <section className="alerts-panel-section">
-      <div className="alerts-panel-header">
-        <AlertTriangle size={20} />
-        <h3>Alertas de Calidad de Datos ({totalAlertsCount})</h3>
+      <div className="alerts-panel-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '1rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <AlertTriangle size={20} />
+          <h3>Alertas de Calidad de Datos ({totalAlertsCount})</h3>
+        </div>
+        <button 
+          className="btn btn-secondary no-print" 
+          onClick={() => setIsSummaryOpen(true)}
+          style={{ 
+            fontSize: '0.75rem', 
+            padding: '0.4rem 0.8rem', 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '0.35rem', 
+            borderRadius: '6px',
+            cursor: 'pointer',
+            height: '30px',
+            border: '1px solid var(--border-color)',
+            background: 'var(--card-bg)',
+            color: 'var(--text-primary)',
+            fontWeight: '600',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'var(--primary)';
+            e.currentTarget.style.color = 'var(--primary)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border-color)';
+            e.currentTarget.style.color = 'var(--text-primary)';
+          }}
+        >
+          <FileText size={14} /> Ver Resumen Textual
+        </button>
       </div>
 
       {alertsData.hasMultipleExplosives && (
@@ -463,6 +558,79 @@ function AlertsSection({ filteredData, rawExcelRows }) {
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {isSummaryOpen && (
+        <div className="modal-overlay no-print" onClick={() => setIsSummaryOpen(false)}>
+          <div className="modal-content-card" style={{ maxWidth: '680px', width: '90%' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-bar">
+              <div className="modal-header-title">
+                <FileText size={18} style={{ color: 'var(--primary)' }} />
+                <span>
+                  Resumen Textual de Anomalías Detectadas
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <button 
+                  onClick={handleCopyClipboard}
+                  style={{ 
+                    marginRight: '0.75rem', 
+                    fontSize: '0.75rem', 
+                    padding: '0.35rem 0.75rem',
+                    background: copied ? 'var(--success)' : 'var(--primary)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    transition: 'background 0.2s ease'
+                  }}
+                >
+                  {copied ? '¡Copiado!' : 'Copiar Resumen'}
+                </button>
+                <button className="modal-close-btn" onClick={() => setIsSummaryOpen(false)}>
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            <div className="modal-body-area" style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '0.5rem' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem', lineHeight: '1.4' }}>
+                A continuación se muestra el listado textual de todas las inconsistencias de control de calidad identificadas en la planilla de carguío cargada:
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {pozoTextSummaries.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--success)', fontWeight: '600' }}>
+                    ✓ No se detectaron anomalías en la planilla.
+                  </div>
+                ) : (
+                  pozoTextSummaries.map(([pozo, errors]) => (
+                    <div 
+                      key={pozo} 
+                      style={{ 
+                        background: 'rgba(239, 68, 68, 0.03)', 
+                        border: '1px solid rgba(239, 68, 68, 0.12)', 
+                        borderRadius: '8px', 
+                        padding: '0.75rem 1rem',
+                        fontSize: '0.85rem',
+                        lineHeight: '1.45'
+                      }}
+                    >
+                      <strong style={{ color: 'var(--danger)', display: 'block', marginBottom: '0.25rem', fontSize: '0.9rem' }}>
+                        Pozo P-{pozo}:
+                      </strong>
+                      <span style={{ color: 'var(--text-primary)' }}>
+                        {errors.map((err, i) => i === 0 ? err.charAt(0).toUpperCase() + err.slice(1) : err).join(', ') + '.'}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>
