@@ -453,7 +453,7 @@ function AlertsSection({ filteredData, rawExcelRows }) {
               ⚠️ ALERTA CRÍTICA DE OPERACIÓN
             </h4>
             <span style={{ lineHeight: '1.5' }}>
-              Se ha detectado la mezcla de **más de un tipo de explosivo** para la misma fecha de trabajo: (<strong>{alertsData.explosiveListStr}</strong>). Por favor, valida con urgencia si esta combinación corresponde a la planificación técnica de la tronadura.
+              Se ha detectado la mezcla de **más de un tipo de explosivo** para la misma fecha de trabajo: (<strong>{alertsData.explosiveListStr}</strong>). Por favor, valida si esta combinación corresponde a la planificación técnica de la tronadura, si es valido ve al filtro TIPO EXPLOSIVO.
             </span>
           </div>
         </div>
