@@ -378,6 +378,44 @@ function DeviationSection({ filteredData, rawExcelRows, theme }) {
         </div>
       )}
 
+      {/* Gráfico de Carga Real vs Teórica */}
+      <div className="chart-card glass-panel" style={{ marginTop: '1.5rem', marginBottom: '1.5rem', padding: '1.5rem', background: 'rgba(255,255,255,0.01)' }}>
+        <div className="chart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <h3 className="chart-title" style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>
+            Comparación de Carga Real vs. Teórica (Página {currentPage} - {paginatedData.length} pozos)
+          </h3>
+        </div>
+        <div className="chart-container" style={{ height: '300px', position: 'relative' }}>
+          <Line 
+            data={chartData} 
+            options={chartOptions} 
+          />
+        </div>
+      </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="pagination" style={{ marginTop: '1rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Página {currentPage} de {totalPages}</span>
+          <div className="pagination-controls" style={{ display: 'flex', gap: '0.25rem' }}>
+            <button 
+              className="page-btn" 
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft size={16} style={{ display: 'block' }} />
+            </button>
+            <button 
+              className="page-btn" 
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight size={16} style={{ display: 'block' }} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Tabla de Desviaciones */}
       <div className="table-wrapper" style={{ margin: 0, overflow: 'visible' }}>
         <table className="data-table deviation-table" style={{ width: '100%' }}>
@@ -447,60 +485,22 @@ function DeviationSection({ filteredData, rawExcelRows, theme }) {
                     {item.desviacionPct > 0 ? '+' : ''}{item.desviacionPct.toFixed(1)}%
                   </td>
                   <td style={{ color: 'var(--text-secondary)' }}>±{item.tolerance}%</td>
-                <td>
-                  {item.isConforme ? (
-                    <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                      <CheckCircle2 size={10} /> Conforme
-                    </span>
-                  ) : (
-                    <span className="badge badge-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
-                      <AlertTriangle size={10} /> Desviado
-                    </span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
+                  <td>
+                    {item.isConforme ? (
+                      <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <CheckCircle2 size={10} /> Conforme
+                      </span>
+                    ) : (
+                      <span className="badge badge-danger" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem' }}>
+                        <AlertTriangle size={10} /> Desviado
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-      </div>
-
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="pagination" style={{ marginTop: '1rem' }}>
-          <span>Página {currentPage} de {totalPages}</span>
-          <div className="pagination-controls">
-            <button 
-              className="page-btn" 
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft size={16} style={{ display: 'block' }} />
-            </button>
-            <button 
-              className="page-btn" 
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight size={16} style={{ display: 'block' }} />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Gráfico de Carga Real vs Teórica */}
-      <div className="chart-card glass-panel" style={{ marginTop: '2rem', padding: '1.5rem', background: 'rgba(255,255,255,0.01)' }}>
-        <div className="chart-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <h3 className="chart-title" style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>
-            Comparación de Carga Real vs. Teórica (Página {currentPage} - {paginatedData.length} pozos)
-          </h3>
-        </div>
-        <div className="chart-container" style={{ height: '300px', position: 'relative' }}>
-          <Line 
-            data={chartData} 
-            options={chartOptions} 
-          />
-        </div>
       </div>
 
       {/* Modal Inspector de Fila Original desde Desviaciones */}

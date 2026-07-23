@@ -46,6 +46,7 @@ export const getRowAlerts = (row) => {
                              (row.camionColumna === null || row.camionColumna === undefined || String(row.camionColumna).trim() === '');
                              
   const isOperadorEmpty = row.operador === null || row.operador === undefined || String(row.operador).trim() === '';
+  const isPozoEmpty = row.pozo === null || row.pozo === undefined || String(row.pozo).trim() === '';
 
   // Validación Cruzada:
   const hasFondoLoad = row.cargaFondo !== null && row.cargaFondo > 0;
@@ -60,7 +61,7 @@ export const getRowAlerts = (row) => {
     !row.camionColumna || String(row.camionColumna).trim() === ''
   );
 
-  if (isAllCargasEmpty || isAllTiposEmpty || isAllCamionesEmpty || isOperadorEmpty || missingFondoTrazabilidad || missingColumnaTrazabilidad) {
+  if (isAllCargasEmpty || isAllTiposEmpty || isAllCamionesEmpty || isOperadorEmpty || isPozoEmpty || missingFondoTrazabilidad || missingColumnaTrazabilidad) {
     alerts.push('Celdas vacías críticas');
   }
 

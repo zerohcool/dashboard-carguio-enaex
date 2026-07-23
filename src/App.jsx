@@ -372,10 +372,17 @@ function App() {
           }
         });
 
-        // Limpieza: conservar filas que tengan al menos algún dato de carguío significativo
+        // Limpieza: conservar la fila si contiene al menos 3 datos de carguío significativo
         const cleanedData = normalized.filter(row => {
-          const hasSignificantData = row.pozo || row.fase || row.banco || row.operador || row.cargaFondo || row.cargaColumna || row.cargaTotal;
-          return !!hasSignificantData;
+          let count = 0;
+          if (row.pozo !== null && row.pozo !== undefined && String(row.pozo).trim() !== '') count++;
+          if (row.fase !== null && row.fase !== undefined && String(row.fase).trim() !== '') count++;
+          if (row.banco !== null && row.banco !== undefined && String(row.banco).trim() !== '') count++;
+          if (row.operador !== null && row.operador !== undefined && String(row.operador).trim() !== '') count++;
+          if (row.cargaFondo !== null && row.cargaFondo !== undefined && row.cargaFondo > 0) count++;
+          if (row.cargaColumna !== null && row.cargaColumna !== undefined && row.cargaColumna > 0) count++;
+          if (row.cargaTotal !== null && row.cargaTotal !== undefined && row.cargaTotal > 0) count++;
+          return count >= 3;
         });
 
         if (cleanedData.length === 0) {

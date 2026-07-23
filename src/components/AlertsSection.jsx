@@ -106,9 +106,15 @@ function AlertsSection({ filteredData, rawExcelRows }) {
         missingFields.push('Operador');
       }
 
+      // Número de pozo
+      const isPozoMissing = !row.pozo || String(row.pozo).trim() === '';
+      if (isPozoMissing) {
+        missingFields.push('Número de pozo');
+      }
+
       if (missingFields.length > 0) {
         emptyFieldIssues.push({
-          pozo: row.pozo,
+          pozo: isPozoMissing ? `Fila #${row.id}` : row.pozo,
           poligono: row.poligono || '',
           fields: missingFields.join(', ')
         });
@@ -410,22 +416,46 @@ function AlertsSection({ filteredData, rawExcelRows }) {
       </div>
 
       {alertsData.hasMultipleExplosives && (
-        <div style={{ 
-          background: 'rgba(245, 158, 11, 0.06)', 
-          border: '1px solid rgba(245, 158, 11, 0.25)', 
-          padding: '0.5rem 0.8rem', 
-          borderRadius: '6px', 
-          marginBottom: '1rem',
-          fontSize: '0.8rem',
-          color: '#d97706',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          <AlertTriangle size={15} style={{ flexShrink: 0 }} />
-          <span>
-            <strong>Alerta de Operación:</strong> Se detectó más de un tipo de explosivo en los datos filtrados (<strong>{alertsData.explosiveListStr}</strong>). Por favor, valida que corresponda a la planificación.
-          </span>
+        <div 
+          className="pulse-glow-warning"
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%)', 
+            border: '2px dashed #f59e0b', 
+            padding: '1.25rem 1.5rem', 
+            borderRadius: '12px', 
+            marginBottom: '1.5rem',
+            fontSize: '0.95rem',
+            color: 'var(--text-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            boxShadow: '0 8px 32px 0 rgba(245, 158, 11, 0.15), inset 0 0 12px 0 rgba(245, 158, 11, 0.1)',
+            backdropFilter: 'blur(8px)',
+            borderLeft: '8px solid #f59e0b',
+            animation: 'warningPulse 2.5s infinite ease-in-out'
+          }}
+        >
+          <div style={{
+            background: '#f59e0b',
+            borderRadius: '50%',
+            padding: '0.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffffff',
+            boxShadow: '0 0 12px #f59e0b',
+            flexShrink: 0
+          }}>
+            <AlertTriangle size={24} className="warning-icon-pulse" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h4 style={{ margin: '0 0 0.25rem 0', color: '#f59e0b', fontWeight: '800', fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              ⚠️ ALERTA CRÍTICA DE OPERACIÓN
+            </h4>
+            <span style={{ lineHeight: '1.5' }}>
+              Se ha detectado la mezcla de **más de un tipo de explosivo** para la misma fecha de trabajo: (<strong>{alertsData.explosiveListStr}</strong>). Por favor, valida con urgencia si esta combinación corresponde a la planificación técnica de la tronadura.
+            </span>
+          </div>
         </div>
       )}
 

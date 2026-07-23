@@ -14,6 +14,7 @@ function DataTable({ filteredData }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
   const [isPrintingAll, setIsPrintingAll] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   const renderAlertBadges = (row) => {
     const alerts = getRowAlerts(row);
@@ -224,185 +225,226 @@ function DataTable({ filteredData }) {
   };
 
   return (
-    <div className="table-card glass-panel">
-      <div className="table-header">
+    <div className="table-card glass-panel" style={{ padding: isCollapsed && !isPrintingAll ? '1rem 1.5rem' : '1.5rem' }}>
+      <div className="table-header" style={{ 
+        marginBottom: isCollapsed && !isPrintingAll ? '0' : '1rem', 
+        borderBottom: isCollapsed && !isPrintingAll ? 'none' : '1px solid var(--border-color)', 
+        paddingBottom: isCollapsed && !isPrintingAll ? '0' : '1rem' 
+      }}>
         <div>
-          <h3 className="table-title">Detalle de Pozos</h3>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-            Mostrando {filteredData.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} a {Math.min(currentPage * pageSize, filteredData.length)} de {filteredData.length} pozos filtrados
-          </p>
+          <h3 className="table-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FileSpreadsheet size={20} className="text-primary" />
+            Detalle de Pozos
+          </h3>
+          {(!isCollapsed || isPrintingAll) ? (
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', marginBottom: 0 }}>
+              Mostrando {filteredData.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} a {Math.min(currentPage * pageSize, filteredData.length)} de {filteredData.length} pozos filtrados
+            </p>
+          ) : (
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.2rem', marginBottom: 0 }}>
+              {filteredData.length} pozos en total (Sección minimizada)
+            </p>
+          )}
         </div>
         
-        {filteredData.length > 0 && (
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Pozos por pág:</span>
-              <select 
-                className="filter-select"
-                style={{ padding: '0.35rem 0.5rem', minWidth: '70px' }}
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-              >
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
-            <button className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }} onClick={handlePrintTable}>
-              <Printer size={14} /> Imprimir Planilla
-            </button>
-            
-            <button className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }} onClick={handleExportCSV}>
-              <Download size={14} /> Exportar CSV
-            </button>
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          {(!isCollapsed || isPrintingAll) && filteredData.length > 0 && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Pozos por pág:</span>
+                <select 
+                  className="filter-select"
+                  style={{ padding: '0.35rem 0.5rem', minWidth: '70px' }}
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+              <button className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }} onClick={handlePrintTable}>
+                <Printer size={14} /> Imprimir Planilla
+              </button>
+              
+              <button className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }} onClick={handleExportCSV}>
+                <Download size={14} /> Exportar CSV
+              </button>
+            </>
+          )}
+          
+          <button 
+            className="btn btn-primary" 
+            style={{ padding: '0.5rem 1.25rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }} 
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          >
+            {isCollapsed ? 'Ver Detalle' : 'Minimizar'}
+          </button>
+        </div>
       </div>
 
-      {filteredData.length === 0 ? (
-        <div className="empty-state" style={{ padding: '2rem' }}>
-          <p className="empty-state-desc">No hay datos de pozos para mostrar con los filtros aplicados.</p>
-        </div>
-      ) : (
+      {(!isCollapsed || isPrintingAll) && (
         <>
-          <div className="table-wrapper">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Pozo</th>
-                  <th>Polígono</th>
-                  <th>Fase / Banco</th>
-                  <th>Diámetro</th>
-                  <th>Diseño (m)</th>
-                  <th>Real (m)</th>
-                  <th>Desv.</th>
-                  <th>Taco (m)</th>
-                  <th>Agua (m)</th>
-                  <th>Carga Fondo</th>
-                  <th>Camión Fondo</th>
-                  <th>Carga Col.</th>
-                  <th>Operador</th>
-                  <th>Comentarios</th>
-                  <th>Alertas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedData.map((row) => {
-                  const hasWater = row.agua !== null && row.agua > 0;
-                  
-                  return (
-                    <tr key={row.id}>
-                      <td style={{ fontWeight: '700', color: 'var(--primary)' }}>{row.pozo}</td>
-                      <td>
-                        {row.poligono ? (
-                          <span className="badge badge-info">{row.poligono}</span>
-                        ) : (
-                          <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>(vacío)</span>
-                        )}
-                      </td>
-                      <td>{row.fase && row.banco ? `F${row.fase} / B${row.banco}` : row.fase || row.banco || '-'}</td>
-                      <td>{row.diametro || '-'}</td>
-                      <td>{row.longitudDis !== null ? `${row.longitudDis.toFixed(2)}m` : '-'}</td>
-                      <td style={{ color: row.longitudReal !== null ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                        {row.longitudReal !== null ? `${row.longitudReal.toFixed(2)}m` : '-'}
-                      </td>
-                      <td>{getDeviationBadge(row)}</td>
-                      <td>{row.taco !== null ? `${row.taco.toFixed(2)}m` : '-'}</td>
-                      <td style={{ color: hasWater ? 'var(--primary)' : 'var(--text-muted)' }}>
-                        {hasWater ? (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontWeight: '500' }}>
-                            <Droplet size={12} fill="var(--primary)" /> {row.agua.toFixed(2)}m
-                          </span>
-                        ) : (
-                          'Seco'
-                        )}
-                      </td>
-                      <td style={{ fontWeight: '500' }}>
-                        {row.cargaFondo !== null ? `${row.cargaFondo.toLocaleString('es-CL')} kg` : '-'}
-                        {row.tipoFondo && <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>{row.tipoFondo}</span>}
-                      </td>
-                      <td>{row.camionFondo || '-'}</td>
-                      <td style={{ fontWeight: '500' }}>
-                        {row.cargaColumna !== null && row.cargaColumna > 0 ? `${row.cargaColumna.toLocaleString('es-CL')} kg` : '-'}
-                        {row.tipoColumna && <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>{row.tipoColumna}</span>}
-                      </td>
-                      <td>{row.operador || '-'}</td>
-                      <td style={{ 
-                        maxWidth: '220px', 
-                        overflow: 'hidden', 
-                        textOverflow: 'ellipsis', 
-                        color: 'var(--text-secondary)',
-                        fontSize: '0.8rem' 
-                      }} title={row.comentarios || ''}>
-                        {row.comentarios || '-'}
-                      </td>
-                      <td>{renderAlertBadges(row)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="pagination">
-              <span>Página {currentPage} de {totalPages}</span>
-              <div className="pagination-controls">
-                <button 
-                  className="page-btn" 
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft size={16} style={{ display: 'block' }} />
-                </button>
-                
-                {/* Botones de número de página dinámicos */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
-                  // Mostrar páginas centradas alrededor de la actual
-                  let pageNum = currentPage;
-                  if (currentPage <= 3) {
-                    pageNum = idx + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + idx;
-                  } else {
-                    pageNum = currentPage - 2 + idx;
-                  }
-                  
-                  // Validar rango
-                  if (pageNum < 1 || pageNum > totalPages) return null;
-
-                  return (
-                    <button 
-                      key={pageNum}
-                      className="page-btn"
-                      style={{ 
-                        backgroundColor: currentPage === pageNum ? 'var(--primary)' : '', 
-                        color: currentPage === pageNum ? '#030712' : '',
-                        borderColor: currentPage === pageNum ? 'var(--primary)' : '',
-                        fontWeight: currentPage === pageNum ? 'bold' : 'normal'
-                      }}
-                      onClick={() => setCurrentPage(pageNum)}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-
-                <button 
-                  className="page-btn" 
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRight size={16} style={{ display: 'block' }} />
-                </button>
-              </div>
+          {filteredData.length === 0 ? (
+            <div className="empty-state" style={{ padding: '2rem' }}>
+              <p className="empty-state-desc">No hay datos de pozos para mostrar con los filtros aplicados.</p>
             </div>
+          ) : (
+            <>
+              <div className="table-wrapper">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Pozo</th>
+                      <th>Polígono</th>
+                      <th>Fase / Banco</th>
+                      <th>Diámetro</th>
+                      <th>Diseño (m)</th>
+                      <th>Real (m)</th>
+                      <th>Desv.</th>
+                      <th>Taco (m)</th>
+                      <th>Agua (m)</th>
+                      <th>Temp.</th>
+                      <th>Primas</th>
+                      <th>Carga Fondo</th>
+                      <th>Carga Columna</th>
+                      <th>Total Real</th>
+                      <th>Operador</th>
+                      <th>Comentarios</th>
+                      <th>Alertas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedData.map((row, idx) => {
+                      const diffMeters = (row.longitudReal !== null && row.longitudReal !== undefined && row.longitudDis !== null && row.longitudDis !== undefined) 
+                        ? (row.longitudReal - row.longitudDis) 
+                        : null;
+                      
+                      const cFondo = (row.cargaFondo !== null && row.cargaFondo !== undefined) ? `${row.cargaFondo.toFixed(0)} kg` : '-';
+                      const cColumna = (row.cargaColumna !== null && row.cargaColumna !== undefined) ? `${row.cargaColumna.toFixed(0)} kg` : '-';
+                      const cTotal = (row.cargaTotal !== null && row.cargaTotal !== undefined) ? `${row.cargaTotal.toFixed(0)} kg` : '-';
+
+                      const fExplosive = row.tipoFondo || '';
+                      const cExplosive = row.tipoColumna || '';
+                      
+                      const fTruck = row.camionFondo || '';
+                      const cTruck = row.camionColumna || '';
+
+                      return (
+                        <tr key={idx}>
+                          <td style={{ fontWeight: '700' }}>{row.pozo || <span style={{ color: 'var(--danger)', fontSize: '0.75rem' }}>(vacío)</span>}</td>
+                          <td>{row.poligono || '-'}</td>
+                          <td>{row.fase || '-'}/{row.banco || '-'}</td>
+                          <td style={{ fontWeight: '600' }}>{row.diametro || '-'}</td>
+                          <td>{(row.longitudDis !== null && row.longitudDis !== undefined) ? row.longitudDis.toFixed(2) : '-'}</td>
+                          <td>{(row.longitudReal !== null && row.longitudReal !== undefined) ? row.longitudReal.toFixed(2) : '-'}</td>
+                          <td>{getDeviationBadge(row)}</td>
+                          <td>{(row.taco !== null && row.taco !== undefined) ? row.taco.toFixed(2) : '-'}</td>
+                          <td>
+                            {row.agua !== null && row.agua > 0 ? (
+                              <span style={{ color: '#60a5fa', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                <Droplet size={12} /> {row.agua.toFixed(1)}m
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td>{row.temperatura !== null ? `${row.temperatura}°C` : '-'}</td>
+                          <td>
+                            {row.nPrimas !== null ? (
+                              <span style={{ fontSize: '0.8rem' }}>
+                                {row.nPrimas} {row.idPrima ? `(${row.idPrima})` : ''}
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontWeight: '600' }}>{cFondo}</span>
+                              {fExplosive && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{fExplosive}</span>}
+                              {fTruck && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{fTruck}</span>}
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              <span style={{ fontWeight: '600' }}>{cColumna}</span>
+                              {cExplosive && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{cExplosive}</span>}
+                              {cTruck && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{cTruck}</span>}
+                            </div>
+                          </td>
+                          <td style={{ fontWeight: '700', fontSize: '0.9rem' }}>{cTotal}</td>
+                          <td style={{ fontSize: '0.8rem' }}>{row.operador || '-'}</td>
+                          <td style={{ 
+                            maxWidth: '150px', 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis', 
+                            whiteSpace: 'nowrap', 
+                            fontSize: '0.75rem',
+                            color: 'var(--text-secondary)'
+                          }} title={row.comentarios || ''}>
+                            {row.comentarios || '-'}
+                          </td>
+                          <td>{renderAlertBadges(row)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {!isPrintingAll && totalPages > 1 && (
+                <div className="pagination" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  
+                  <div style={{ display: 'flex', gap: '0.25rem' }}>
+                    <button 
+                      className="page-btn" 
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft size={16} style={{ display: 'block' }} />
+                    </button>
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => {
+                      if (totalPages > 6 && Math.abs(currentPage - pageNum) > 2 && pageNum !== 1 && pageNum !== totalPages) {
+                        if (pageNum === 2 || pageNum === totalPages - 1) {
+                          return <span key={pageNum} style={{ padding: '0.25rem 0.5rem', color: 'var(--text-muted)' }}>...</span>;
+                        }
+                        return null;
+                      }
+
+                      return (
+                        <button 
+                          key={pageNum} 
+                          className="page-btn"
+                          style={{
+                            background: currentPage === pageNum ? 'var(--primary)' : 'transparent',
+                            color: currentPage === pageNum ? '#ffffff' : 'var(--text-primary)',
+                            borderColor: currentPage === pageNum ? 'var(--primary)' : 'var(--border-color)',
+                            fontWeight: currentPage === pageNum ? '700' : 'normal'
+                          }}
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+
+                    <button 
+                      className="page-btn" 
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight size={16} style={{ display: 'block' }} />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </>
       )}
